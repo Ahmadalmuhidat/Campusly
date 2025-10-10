@@ -151,5 +151,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Ahmad ALmuhidat**
+**Ahmad Almuhidat**
 - Email: ahmad.almuhidat@gmail.com
