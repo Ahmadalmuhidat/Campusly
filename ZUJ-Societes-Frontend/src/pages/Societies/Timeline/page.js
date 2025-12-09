@@ -7,7 +7,7 @@ import Timeline from './Components/MainContent';
 
 export default function SocietyDetail() {
   const { id } = useParams();
-  const { isMember } = useSocietyMembership(id);
+  const { isMember, isAdmin } = useSocietyMembership(id);
   const [showModal, setShowModal] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImage, setNewPostImage] = useState('');
@@ -16,9 +16,8 @@ export default function SocietyDetail() {
 
   const getPostsBySociety = async () => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.get("/posts/get_posts_by_society", {
-        params: { token, society_id: id },
+      const response = await AxiosClient.get("/societies/posts", {
+        params: { society_id: id },
       });
 
       if (response.status === 200) {
@@ -35,9 +34,7 @@ export default function SocietyDetail() {
 
   const handleCreatePost = async () => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.post("/posts/create_post", {
-        token,
+      const response = await AxiosClient.post("/posts", {
         content: newPostContent,
         image: newPostImage || '',
         society_id: id,
@@ -66,7 +63,7 @@ export default function SocietyDetail() {
         societyId={id || '1'}
         showJoinButton={!isMember}
         actionButton={
-          isMember ? (
+          isMember && isAdmin && (
             <div className="flex gap-3">
               <Link
                 to={`/societies/${id}/events/new`}
@@ -81,7 +78,7 @@ export default function SocietyDetail() {
                 Create Post
               </button>
             </div>
-          ) : undefined
+          )
         }
       />
 

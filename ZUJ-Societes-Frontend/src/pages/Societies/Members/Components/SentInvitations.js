@@ -9,10 +9,9 @@ export default function SentInvitations({ societyId, isOpen, onClose }) {
   const fetchSentInvitations = async () => {
     try {
       setLoading(true);
-      const response = await AxiosClient.get('/societies/get_sent_invitations', {
+      const response = await AxiosClient.get('/societies/members/invites', {
         params: {
-          society_id: societyId,
-          token: localStorage.getItem('token') || sessionStorage.getItem('token'),
+          society_id: societyId
         },
       });
 
@@ -28,10 +27,9 @@ export default function SentInvitations({ societyId, isOpen, onClose }) {
 
   const cancelInvitation = async (invitationId) => {
     try {
-      const response = await AxiosClient.delete('/societies/cancel_invitation', {
+      const response = await AxiosClient.delete('/societies/members/invites/cancel', {
         params: {
-          invitation_id: invitationId,
-          token: localStorage.getItem('token') || sessionStorage.getItem('token'),
+          invitation_id: invitationId
         },
       });
 

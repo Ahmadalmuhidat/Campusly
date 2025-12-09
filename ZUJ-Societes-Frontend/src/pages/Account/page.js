@@ -10,11 +10,7 @@ export default function Account() {
 
   const getUserProfileInfo = async () => {
     try {
-      const response = await AxiosClient.get("/users/get_user_profile_info", {
-        params: {
-          token: localStorage.getItem("token") || sessionStorage.getItem("token")
-        }
-      });
+      const response = await AxiosClient.get("/users/profile");
 
       if (response.status === 200) {
         setProfileData(response.data.data);

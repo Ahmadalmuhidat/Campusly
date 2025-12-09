@@ -15,7 +15,7 @@ export default function SocietyJoinRequests() {
 
   const getAllJoinRequests = async () => {
     try {
-      const response = await AxiosClient.get("/societies/join_requests/get_all", {
+      const response = await AxiosClient.get("/societies/requests", {
         params: {
           society_id: id
         }

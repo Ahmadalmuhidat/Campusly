@@ -22,7 +22,7 @@ export default function QuickPostCreator({ onPostCreated }) {
   React.useEffect(() => {
     if (isOpen) {
       fetchUserSocieties();
-      
+
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -33,12 +33,14 @@ export default function QuickPostCreator({ onPostCreated }) {
 
   const fetchUserSocieties = async () => {
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await AxiosClient.get('/societies/get_societies_by_user', {
-        params: { token }
-      });
+      const response = await AxiosClient.get('/user/societies');
       if (response.status === 200) {
-        setSocieties(response.data.data);
+        const unique = Array.from(
+          new Map(response.data.data.map(s => [s.ID, s])).values()
+        );
+
+        setSocieties(unique);
+
         if (response.data.data.length > 0) {
           setSelectedSociety(response.data.data[0].ID);
         }
@@ -54,9 +56,7 @@ export default function QuickPostCreator({ onPostCreated }) {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await AxiosClient.post('/posts/create_post', {
-        token,
+      const response = await AxiosClient.post('/posts', {
         content: content.trim(),
         image: image.trim() || '',
         society_id: selectedSociety,

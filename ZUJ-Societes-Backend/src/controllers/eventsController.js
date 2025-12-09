@@ -4,15 +4,20 @@ const Society = require("../models/societies");
 const SocietyMember = require("../models/societyMembers");
 const EventAttendance = require("../models/eventAttendance");
 const EventInteractions = require("../models/eventInteractions");
-const { v4: uuidv4 } = require("uuid");
-const jsonWebToken = require("../helper/json_web_token");
-const jwt = require("jsonwebtoken");
+const jsonWebToken = require("../helpers/jsonWebToken");
 const mailer = require("../services/mailer");
-const { sendNotificationToUsers } = require('./notifications');
+const serverSentEvents = require('../helpers/serverSentEvents');
 
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find({}, "-_id -__v").lean();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const events = await Event.find(
+      { CreatedAt: { $gte: today } },
+      "-__v"
+    ).lean();
+
     res.status(200).json({ data: events });
   } catch (err) {
     console.error(err);
@@ -22,8 +27,12 @@ exports.getAllEvents = async (req, res) => {
 
 exports.getEventInfo = async (req, res) => {
   try {
-    const event = await Event.findOne({ ID: req.query.event_id }).lean();
-    if (!event) return res.status(404).json({ error_message: "Event not found" });
+    const { event_id } = req.query;
+
+    const event = await Event.findOne({ ID: event_id }).lean();
+    if (!event) {
+      return res.status(404).json({ error_message: "Event not found" });
+    }
 
     const organizer = await User.findOne({ ID: event.User }).select("Name").lean();
     res.status(200).json({ data: { ...event, Organizer: organizer?.Name || null } });
@@ -35,52 +44,79 @@ exports.getEventInfo = async (req, res) => {
 
 exports.createEvent = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const newEventId = uuidv4();
+    const {
+      title,
+      description,
+      date,
+      start_time,
+      end_time,
+      society_id,
+      location,
+      image,
+      category
+    } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
+    const society = await Society.findOne({ ID: society_id });
+
+    if (!society) {
+      return res.status(404).json({ error_message: 'Society not found' });
+    }
+
+    const whoCanCreateEvent = society.Permissions?.whoCanCreateEvents || 'all-members';
+    const membership = await SocietyMember.findOne({ Society: society_id, User: userId });
+    const userRole = membership?.Role;
+
+    const isAllowedToCreateEvents =
+      (whoCanCreateEvent === 'all-members') ||
+      (whoCanCreateEvent === 'moderators' && ['moderator', 'admin'].includes(userRole)) ||
+      (whoCanCreateEvent === 'admins' && userRole === 'admin');
+
+    if (!isAllowedToCreateEvents) {
+      return res.status(403).json({ error_message: 'You do not have permission to create events in this society.' });
+    }
 
     const newEvent = new Event({
-      ID: newEventId,
-      Title: req.body.title,
-      Description: req.body.description,
-      Date: req.body.date,
-      Time: req.body.time,
+      Title: title,
+      Description: description,
+      Date: date,
+      StartTime: start_time,
+      EndTime: end_time,
       User: userId,
-      Society: req.body.society_id,
-      Location: req.body.location,
-      Image: req.body.image,
-      Category: req.body.category
+      Society: society_id,
+      Location: location,
+      Image: image,
+      Category: category
     });
 
     await newEvent.save();
 
     try {
-      const society = await Society.findOne({ ID: req.body.society_id });
+      const society = await Society.findOne({ ID: society_id });
       const eventCreator = await User.findOne({ ID: userId }).select('Name Photo');
-      
-      const members = await SocietyMember.find({ Society: req.body.society_id }).select("User").lean();
-      const memberUserIds = members.map(m => m.User);
-      
+
+      const members = await SocietyMember.find({ Society: society_id, User: { $ne: userId } }).select("User").lean();
+      const memberUserIds = members.map(member => member.User);
+
       if (memberUserIds.length > 0) {
         const notification = {
           type: 'new_event',
           title: 'New Event Created',
-          message: `${eventCreator?.Name || 'Someone'} created a new event: "${req.body.title}" in ${society?.Name || 'your society'}`,
+          message: `${eventCreator?.Name || 'Someone'} created a new event: "${title}" in ${society?.Name || 'your society'}`,
           data: {
-            eventId: newEventId,
-            societyId: req.body.society_id,
+            eventId: newEvent.ID,
+            societyId: society_id,
             userId: userId,
-            eventTitle: req.body.title,
+            eventTitle: title,
             societyName: society?.Name
           },
           time: new Date().toISOString()
         };
-
-        await sendNotificationToUsers(memberUserIds, notification);
+        await serverSentEvents.sendToUser(memberUserIds, notification);
       }
     } catch (notificationError) {
       console.error('Failed to send event notification:', notificationError);
     }
-
     res.status(201).json({ data: newEvent });
   } catch (err) {
     console.error(err);
@@ -91,17 +127,11 @@ exports.createEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { event_id } = req.query;
-    let token = req.query.token;
-    if (!token && req.headers.authorization) {
-      token = req.headers.authorization.replace('Bearer ', '');
-    }
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required" });
-    }
-
-    if (!token) {
-      return res.status(401).json({ error_message: "Token is required" });
     }
 
     const event = await Event.findOne({ ID: event_id });
@@ -109,16 +139,14 @@ exports.deleteEvent = async (req, res) => {
       return res.status(404).json({ error_message: "Event not found" });
     }
 
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = user.id;
     const isCreator = event.User && event.User === userId;
 
     let isAdminOrModerator = false;
     if (event.Society) {
       try {
-        const member = await SocietyMember.findOne({ 
-          Society: event.Society, 
-          User: userId 
+        const member = await SocietyMember.findOne({
+          Society: event.Society,
+          User: userId
         });
         isAdminOrModerator = member && (member.Role === 'admin' || member.Role === 'moderator');
       } catch (err) {
@@ -131,14 +159,14 @@ exports.deleteEvent = async (req, res) => {
     }
 
     const result = await Event.deleteOne({ ID: event_id });
-    
+
     if (result.deletedCount === 0) {
       return res.status(404).json({ error_message: "Event not found" });
     }
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Event deleted successfully",
-      data: result 
+      data: result
     });
   } catch (err) {
     console.error(err);
@@ -148,9 +176,22 @@ exports.deleteEvent = async (req, res) => {
 
 exports.getEventsBySociety = async (req, res) => {
   try {
-    const events = await Event.find({ Society: req.query.society_id }).lean();
+    const { society_id } = req.query;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const events = await Event.find(
+      {
+        Society: society_id,
+        CreatedAt: { $gte: today }
+      }
+    ).lean();
+
     const userIds = events.map(e => e.User);
-    const users = await User.find({ ID: { $in: userIds } }).select("ID Name").lean();
+    const users = await User.find({ ID: { $in: userIds } })
+      .select("ID Name")
+      .lean();
 
     const result = events.map(event => {
       const organizer = users.find(u => u.ID === event.User);
@@ -161,6 +202,7 @@ exports.getEventsBySociety = async (req, res) => {
     });
 
     res.status(200).json({ data: result });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error_message: "Failed to get Events for this society" });
@@ -169,21 +211,20 @@ exports.getEventsBySociety = async (req, res) => {
 
 exports.getEventStats = async (req, res) => {
   try {
-    const eventId = req.query.event_id;
-    if (!eventId) {
+    const { event_id } = req.query;
+
+    if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required" });
     }
 
-    const [attendingCount, interestedCount, shareCount] = await Promise.all([
-      EventAttendance.countDocuments({ Event: eventId, Status: 'attending' }),
-      EventAttendance.countDocuments({ Event: eventId, Status: 'interested' }),
-      EventInteractions.countDocuments({ Event: eventId, Action: 'share' })
+    const [attendingCount, shareCount] = await Promise.all([
+      EventAttendance.countDocuments({ Event: event_id, Status: 'attending' }),
+      EventInteractions.countDocuments({ Event: event_id, Action: 'share' })
     ]);
 
-    res.status(200).json({ 
+    res.status(200).json({
       data: {
         attendees: attendingCount,
-        interested: interestedCount,
         shares: shareCount
       }
     });
@@ -195,36 +236,36 @@ exports.getEventStats = async (req, res) => {
 
 exports.toggleEventAttendance = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const eventId = req.body.event_id;
-    const status = req.body.status;
+    const { event_id, status } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
-    if (!eventId || !status) {
+    if (!event_id || !status) {
       return res.status(400).json({ error_message: "Event ID and status are required" });
     }
 
-    const event = await Event.findOne({ ID: eventId });
+    const event = await Event.findOne({ ID: event_id });
     if (!event) {
       return res.status(404).json({ error_message: "Event not found" });
     }
 
-    let attendance = await EventAttendance.findOne({ Event: eventId, User: userId });
-    
+    let attendance = await EventAttendance.findOne({ Event: event_id, User: userId });
+
     if (attendance) {
       attendance.Status = status;
       attendance.UpdatedAt = new Date();
       await attendance.save();
     } else {
       attendance = new EventAttendance({
-        Event: eventId,
+        Event: event_id,
         User: userId,
         Status: status
       });
       await attendance.save();
     }
 
-    res.status(200).json({ 
-      data: { 
+    res.status(200).json({
+      data: {
         message: `Successfully ${status} event`,
         status: attendance.Status
       }
@@ -235,52 +276,18 @@ exports.toggleEventAttendance = async (req, res) => {
   }
 };
 
-exports.toggleEventBookmark = async (req, res) => {
-  try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const eventId = req.body.event_id;
-
-    if (!eventId) {
-      return res.status(400).json({ error_message: "Event ID is required" });
-    }
-
-    const existingBookmark = await EventInteractions.findOne({
-      Event: eventId,
-      User: userId,
-      Action: 'bookmark'
-    });
-
-    if (existingBookmark) {
-      await EventInteractions.deleteOne({ _id: existingBookmark._id });
-      res.status(200).json({ data: { bookmarked: false, message: "Bookmark removed" } });
-    } else {
-      const newBookmark = new EventInteractions({
-        ID: uuidv4(),
-        Event: eventId,
-        User: userId,
-        Action: 'bookmark'
-      });
-      await newBookmark.save();
-      res.status(200).json({ data: { bookmarked: true, message: "Event bookmarked" } });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to toggle bookmark" });
-  }
-};
-
 exports.recordEventShare = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const eventId = req.body.event_id;
+    const { event_id } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
-    if (!eventId) {
+    if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required" });
     }
 
     const shareRecord = new EventInteractions({
-      ID: uuidv4(),
-      Event: eventId,
+      Event: event_id,
       User: userId,
       Action: 'share'
     });
@@ -295,20 +302,20 @@ exports.recordEventShare = async (req, res) => {
 
 exports.getUserEventStatus = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.query.token)['id'];
-    const eventId = req.query.event_id;
+    const { event_id } = req.query;
 
-    if (!eventId) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
+
+    if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required" });
     }
 
-    const attendance = await EventAttendance.findOne({ Event: eventId, User: userId });
-    const bookmark = await EventInteractions.findOne({ Event: eventId, User: userId, Action: 'bookmark' });
+    const attendance = await EventAttendance.findOne({ Event: event_id, User: userId });
 
-    res.status(200).json({ 
+    res.status(200).json({
       data: {
         attendance: attendance?.Status || null,
-        bookmarked: !!bookmark
       }
     });
   } catch (err) {
@@ -317,71 +324,30 @@ exports.getUserEventStatus = async (req, res) => {
   }
 };
 
-exports.getRelatedEvents = async (req, res) => {
-  try {
-    const eventId = req.query.event_id;
-    const limit = parseInt(req.query.limit) || 3;
-
-    if (!eventId) {
-      return res.status(400).json({ error_message: "Event ID is required" });
-    }
-
-    const currentEvent = await Event.findOne({ ID: eventId });
-    if (!currentEvent) {
-      return res.status(404).json({ error_message: "Event not found" });
-    }
-
-    const relatedEvents = await Event.find({
-      Category: currentEvent.Category,
-      ID: { $ne: eventId }
-    })
-    .sort({ CreatedAt: -1 })
-    .limit(limit)
-    .lean();
-
-    const result = await Promise.all(
-      relatedEvents.map(async (event) => {
-        const organizer = await User.findOne({ ID: event.User }).select("Name").lean();
-        return {
-          ...event,
-          Organizer: organizer?.Name || null
-        };
-      })
-    );
-
-    res.status(200).json({ data: result });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to get related events" });
-  }
-};
-
 exports.getEventsAttendedByUser = async (req, res) => {
   try {
-    const userId = req.query.user_id;
-    const limit = parseInt(req.query.limit) || 10;
+    const { limit } = req.query;
 
-    if (!userId) {
-      return res.status(400).json({ error_message: "User ID is required" });
-    }
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userID = jsonWebToken.verifyToken(token)['id'];
 
-    const attendanceRecords = await EventAttendance.find({ 
-      User: userId, 
-      Status: 'attending' 
-    }).limit(limit).lean();
+    const attendanceRecords = await EventAttendance.find({
+      User: userID,
+      Status: 'attending'
+    }).limit(parseInt(limit) || 10).lean();
 
     if (attendanceRecords.length === 0) {
       return res.status(200).json({ data: [] });
     }
 
     const eventIds = attendanceRecords.map(record => record.Event);
-    const events = await Event.find({ 
-      ID: { $in: eventIds } 
+    const events = await Event.find({
+      ID: { $in: eventIds }
     }).lean();
 
     const societyIds = [...new Set(events.map(e => e.Society).filter(Boolean))];
-    const societies = await Society.find({ 
-      ID: { $in: societyIds } 
+    const societies = await Society.find({
+      ID: { $in: societyIds }
     }).lean();
 
     const societyMap = {};

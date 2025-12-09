@@ -13,6 +13,7 @@ export default function EventsList({ id, events, isEventCompleted, searchTerm, i
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const defaultEventImage = 'https://img.freepik.com/free-vector/multicultural-people-standing-together_74855-6583.jpg';
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -79,7 +80,7 @@ export default function EventsList({ id, events, isEventCompleted, searchTerm, i
     try {
       setIsDeleting(true);
       
-      const response = await AxiosClient.delete("/events/delete_event", {
+      const response = await AxiosClient.delete("/events", {
         params: { 
           event_id: eventToDelete.ID
         }
@@ -108,7 +109,7 @@ export default function EventsList({ id, events, isEventCompleted, searchTerm, i
             <div className="md:flex">
               <div className="md:w-1/3 relative">
                 <img
-                  src={event.Image}
+                  src={event.Image || defaultEventImage}
                   alt={event.Title}
                   className="w-full h-48 md:h-full object-cover"
                   onError={e => { e.target.src = `https://via.placeholder.com/400x300/3B82F6/ffffff?text=${encodeURIComponent(event.Title)}` }}
@@ -196,7 +197,7 @@ export default function EventsList({ id, events, isEventCompleted, searchTerm, i
           <p className="text-sm text-gray-500 mb-6">
             {searchTerm ? 'Try adjusting your search criteria.' : 'No events match the selected filter.'}
           </p>
-          {isAuthenticated && isMember && (
+          {isAuthenticated && isMember && isAdmin && (
             <Link
               to={`/societies/${id}/events/new`}
               className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"

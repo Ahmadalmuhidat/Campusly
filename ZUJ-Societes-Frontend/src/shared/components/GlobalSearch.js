@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AxiosClient from '../../config/axios';
 import LoadingSpinner from './LoadingSpinner';
 
+// not user yet
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState({
@@ -34,13 +35,10 @@ export default function GlobalSearch() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      
       const [societiesRes, eventsRes, postsRes] = await Promise.allSettled([
-        AxiosClient.get('/societies/get_all_societies', { params: { token } }),
-        AxiosClient.get('/events/get_all_events', { params: { token } }),
-        AxiosClient.get('/posts/get_all_posts', { params: { token } })
+        AxiosClient.get('/societies'),
+        AxiosClient.get('/events'),
+        AxiosClient.get('/posts')
       ]);
 
       const searchTerm = searchQuery.toLowerCase();

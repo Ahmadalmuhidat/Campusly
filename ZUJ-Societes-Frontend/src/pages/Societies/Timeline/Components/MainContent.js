@@ -4,13 +4,15 @@ import { Link } from 'react-router-dom';
 import PostCard from '../../../../shared/post/PostCard';
 import EventCard from '../../../Events/Components/EventCard';
 import AxiosClient from '../../../../config/axios';
+import { useSocietyMembership } from '../../../../context/MembershipContext';
 
 export default function Timeline({ id, posts, getPostsBySociety, onPostDeleted }) {
   const [events, setEvents] = useState([]);
+  const { isMember, isAdmin } = useSocietyMembership(id);
 
   const getEventsBySociety = async () => {
     try {
-      const response = await AxiosClient.get("/events/get_events_by_society", {
+      const response = await AxiosClient.get("/societies/events", {
         params: { society_id: id },
       });
 
@@ -104,16 +106,20 @@ export default function Timeline({ id, posts, getPostsBySociety, onPostDeleted }
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No upcoming events</h3>
-              <p className="text-gray-500 mb-4">Check back later for new events or create one!</p>
-              <Link
-                to={`/societies/${id}/events/new`}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Create Event
-              </Link>
+              {isMember && isAdmin && (
+                <>
+                  <p className="text-gray-500 mb-4">Check back later for new events or create one!</p>
+                  <Link
+                    to={`/societies/${id}/events/new`}
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Create Event
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>

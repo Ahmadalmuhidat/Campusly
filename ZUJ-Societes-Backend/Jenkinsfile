@@ -38,7 +38,7 @@ pipeline {
       steps {
         echo "Running container ${DOCKER_CONTAINER}..."
         withCredentials([
-          string(credentialsId: 'zuj-societies-jwt-secret', variable: 'JWT_SECRET'),
+          string(credentialsId: 'zuj-societies-jwt-secret', variable: 'SECRET'),
           string(credentialsId: 'zuj-societies-mongo-uri', variable: 'MONGO_URI'),
           string(credentialsId: 'zuj-societies-email-user', variable: 'EMAIL_USER'),
           string(credentialsId: 'zuj-societies-email-pass', variable: 'EMAIL_PASS')
@@ -48,7 +48,7 @@ pipeline {
               --restart unless-stopped \
               -p 4000:4000 \
               -e PORT=4000 \
-              -e JWT_SECRET='${JWT_SECRET}' \
+              -e SECRET='${SECRET}' \
               -e MONGO_URI='${MONGO_URI}' \
               -e EMAIL_USER='${EMAIL_USER}' \
               -e EMAIL_PASS='${EMAIL_PASS}' \

@@ -8,15 +8,12 @@ export default function Tabs({ profileData, setProfileData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
-    pushNotifications: true,
     societyUpdates: true,
-    eventReminders: true
   });
   const [privacy, setPrivacy] = useState({
     profileVisibility: 'public',
     showEmail: false,
     showPhone: false,
-    allowMessages: true
   });
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -48,8 +45,7 @@ export default function Tabs({ profileData, setProfileData }) {
         return;
       }
 
-      const response = await AxiosClient.put("/users/update_profile", {
-        token: localStorage.getItem("token"),
+      const response = await AxiosClient.put("/users", {
         name: profileData.Name,
         email: profileData.Email,
         phone: profileData.Phone_Number,
@@ -78,8 +74,7 @@ export default function Tabs({ profileData, setProfileData }) {
 
   const saveSwitchSettings = async () => {
     try {
-      const response = await AxiosClient.put("/users/update_profile", {
-        token: localStorage.getItem("token"),
+      const response = await AxiosClient.put("/users/profile", {
         name: profileData?.Name,
         email: profileData?.Email,
         phone: profileData?.Phone_Number,
@@ -247,9 +242,7 @@ export default function Tabs({ profileData, setProfileData }) {
                     </h4>
                     <p className="text-sm text-gray-500">
                       {key === 'emailNotifications' && 'Receive email notifications about important updates'}
-                      {key === 'pushNotifications' && 'Receive push notifications on your device'}
                       {key === 'societyUpdates' && 'Get notified about society activities and updates'}
-                      {key === 'eventReminders' && 'Receive reminders about upcoming events'}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -316,7 +309,6 @@ export default function Tabs({ profileData, setProfileData }) {
                     <p className="text-sm text-gray-500">
                       {key === 'showEmail' && 'Allow others to see your email address'}
                       {key === 'showPhone' && 'Allow others to see your phone number'}
-                      {key === 'allowMessages' && 'Allow others to send you messages'}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">

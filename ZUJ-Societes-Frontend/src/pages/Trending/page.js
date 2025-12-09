@@ -21,18 +21,17 @@ export default function TrendingPage() {
       } else {
         setLoading(true);
       }
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
       try {
         const response = await AxiosClient.get('/analytics/trending-posts', { 
-          params: { token, limit, days: timeFilter } 
+          params: { limit, days: timeFilter } 
         });
         
         if (response.status === 200) {
           
           const postsWithLikeStatus = response.data.data.map(post => ({
             ...post,
-            Is_Liked: post.Is_Liked || false,
+            IsLiked: post.IsLiked || false,
             Likes: post.Likes || 0,
             Comments: post.Comments || post.CommentsCount || 0
           }));
@@ -40,12 +39,10 @@ export default function TrendingPage() {
           return;
         }
       } catch (analyticsError) {
-        console.log('Analytics endpoint not available, falling back to regular posts');
+        console.error('Analytics endpoint not available, falling back to regular posts');
       }
 
-      const response = await AxiosClient.get('/posts/get_all_posts', { 
-        params: { token } 
-      });
+      const response = await AxiosClient.get('/posts');
 
       if (response.status === 200) {
         const posts = response.data.data || [];
@@ -54,7 +51,7 @@ export default function TrendingPage() {
         const trendingPosts = posts
           .map(post => ({
             ...post,
-            Is_Liked: post.Is_Liked || false,
+            IsLiked: post.IsLiked || false,
             Likes: post.Likes || 0,
             Comments: post.Comments || post.CommentsCount || 0,
             engagement: (post.Likes || 0) + (post.Comments || post.CommentsCount || 0)

@@ -1,24 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import SocietyCard from './Components/SocietyCard';
-import { useAuth } from '../../context/AuthContext';
 import SocietyInsights from '../../shared/components/SocietyInsights';
-import GlobalSearch from '../../shared/components/GlobalSearch';
 import AxiosClient from '../../config/axios';
 
 export default function Societies() {
   const [societies, setSocieties] = useState([]);
-  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   const getSocieties = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.get("/societies/get_all_societies", {
-        params: { token },
-      });
+      const response = await AxiosClient.get("/societies");
 
       if (response.status === 200) {
         setSocieties(response.data.data);
@@ -42,10 +35,6 @@ export default function Societies() {
         <div className="flex flex-col xl:flex-row gap-8">
           {/* Main Content */}
           <div className="xl:w-3/4">
-            <div className="mb-6">
-              <GlobalSearch />
-            </div>
-
             <div className="mb-12">
               {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

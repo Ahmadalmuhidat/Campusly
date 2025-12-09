@@ -19,7 +19,7 @@ export default function InviteModal({ isOpen, onClose, societyId, onInviteSent }
 
     try {
       setIsSearching(true);
-      const response = await AxiosClient.get('/users/search_users', {
+      const response = await AxiosClient.get('/users/search', {
         params: {
           query: query,
         },
@@ -48,10 +48,9 @@ export default function InviteModal({ isOpen, onClose, societyId, onInviteSent }
 
     try {
       setIsInviting(true);
-      const response = await AxiosClient.post('/societies/invite_member', {
+      const response = await AxiosClient.post('/societies/members/invites', {
         SocietyID: societyId,
-        InviteeID: selectedUser.ID,
-        token: localStorage.getItem('token') || sessionStorage.getItem('token'),
+        InviteeID: selectedUser.ID
       });
 
       if (response.status === 201) {

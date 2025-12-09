@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Components/Sidebar';
 import WelcomeBack from './Components/WelcomeBack';
 import ActivityFeed from '../../shared/components/ActivityFeed';
-import PersonalizedRecommendations from '../../shared/components/PersonalizedRecommendations';
 import QuickPostCreator from '../../shared/components/QuickPostCreator';
 
 export default function Home() {
@@ -32,7 +31,6 @@ export default function Home() {
               <>
                 <QuickPostCreator />
                 <ActivityFeed />
-                <PersonalizedRecommendations />
               </>
             )}
           </div>

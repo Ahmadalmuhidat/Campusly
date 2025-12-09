@@ -12,8 +12,8 @@ const eventAttendanceSchema = new mongoose.Schema({
   User: { type: String, required: true },
   Status: { 
     type: String, 
-    enum: ['attending', 'interested', 'not_attending'], 
-    default: 'interested' 
+    enum: ['attending', 'not_attending'], 
+    default: 'not_attending' 
   },
   CreatedAt: { type: Date, default: Date.now },
   UpdatedAt: { type: Date, default: Date.now }

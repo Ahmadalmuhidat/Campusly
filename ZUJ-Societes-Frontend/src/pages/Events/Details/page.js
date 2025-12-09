@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocietyMembership } from '../../../context/MembershipContext';
 import DeleteConfirmationModal from '../../../shared/components/DeleteConfirmationModal';
+import { parseEventDate } from '../../../utils/dateUtils';
 
 export default function EventDetailsPage() {
   const { id } = useParams();
@@ -17,9 +18,8 @@ export default function EventDetailsPage() {
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [isAttending, setIsAttending] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [eventStats, setEventStats] = useState({ attendees: 0, interested: 0, shares: 0 });
+  const [eventStats, setEventStats] = useState({ attendees: 0, shares: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -30,7 +30,7 @@ export default function EventDetailsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await AxiosClient.get("/events/get_event_info", {
+      const response = await AxiosClient.get("/events/info", {
         params: {
           event_id: id,
         },
@@ -52,7 +52,7 @@ export default function EventDetailsPage() {
   const getEventStats = async () => {
     try {
       setLoadingStats(true);
-      const response = await AxiosClient.get("/events/get_event_stats", {
+      const response = await AxiosClient.get("/events/stats", {
         params: { event_id: id }
       });
       if (response.status === 200) {
@@ -71,14 +71,14 @@ export default function EventDetailsPage() {
     if (!isAuthenticated) return;
     
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.get("/events/get_user_status", {
-        params: { event_id: id, token }
+      const response = await AxiosClient.get("/users/events/status", {
+        params: {
+          event_id: id
+        }
       });
       if (response.status === 200) {
-        const { attendance, bookmarked } = response.data.data;
+        const { attendance } = response.data.data;
         setIsAttending(attendance === 'attending');
-        setIsBookmarked(bookmarked);
       }
     } catch (error) {
       console.error("Failed to fetch user event status:", error);
@@ -93,13 +93,11 @@ export default function EventDetailsPage() {
     }
 
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const newStatus = isAttending ? 'not_attending' : 'attending';
       
-      const response = await AxiosClient.post("/events/toggle_attendance", {
+      const response = await AxiosClient.post("/events/attendance", {
         event_id: id,
-        status: newStatus,
-        token
+        status: newStatus
       });
       
       if (response.status === 200) {
@@ -112,36 +110,12 @@ export default function EventDetailsPage() {
     }
   };
 
-  const toggleBookmark = async () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.post("/events/toggle_bookmark", {
-        event_id: id,
-        token
-      });
-      
-      if (response.status === 200) {
-        setIsBookmarked(response.data.data.bookmarked);
-        toast.success(response.data.data.message);
-      }
-    } catch (error) {
-      console.error("Failed to toggle bookmark:", error);
-    }
-  };
-
   const recordShare = async () => {
     if (!isAuthenticated) return;
 
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      await AxiosClient.post("/events/record_share", {
+      await AxiosClient.post("/events/share", {
         event_id: id,
-        token
       });
       getEventStats(); 
     } catch (error) {
@@ -158,7 +132,7 @@ export default function EventDetailsPage() {
     try {
       setIsDeleting(true);
       
-      const response = await AxiosClient.delete("/events/delete_event", {
+      const response = await AxiosClient.delete("/events", {
         params: { 
           event_id: event.ID
         }
@@ -190,36 +164,6 @@ export default function EventDetailsPage() {
   const eventLocation = event?.Location;
   const eventTitle = event?.Title;
   const eventDescription = event?.Description;
-
-  const parseEventDate = (dateInput, timeInput) => {
-    if (!dateInput && !timeInput) return null;
-    const tryParse = (value) => {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    };
-
-    
-    const direct = tryParse(dateInput);
-    if (direct) return direct;
-
-    
-    if (dateInput && timeInput) {
-      const combinedISO = tryParse(`${dateInput}T${timeInput}`);
-      if (combinedISO) return combinedISO;
-      const combinedSpace = tryParse(`${dateInput} ${timeInput}`);
-      if (combinedSpace) return combinedSpace;
-    }
-
-    
-    if (dateInput && /^\d+$/.test(String(dateInput))) {
-      const num = Number(dateInput);
-      const ms = num < 1e12 ? num * 1000 : num; 
-      const numeric = tryParse(ms);
-      if (numeric) return numeric;
-    }
-
-    return null;
-  };
 
   const formattedDate = useMemo(() => {
     const parsed = parseEventDate(eventDate, eventTime);
@@ -402,19 +346,6 @@ export default function EventDetailsPage() {
           </button>
           
           <div className="flex items-center gap-2">
-            <button 
-              onClick={toggleBookmark}
-              className={`p-2 rounded-lg backdrop-blur-sm transition-all duration-200 ${
-                isBookmarked 
-                  ? 'bg-red-500 text-white shadow-lg' 
-                  : 'bg-white/90 text-gray-700 hover:bg-white shadow-lg'
-              }`}
-            >
-              <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
-            
             <button 
               onClick={() => setShowShareModal(true)}
               className="p-2 rounded-lg bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white transition-all duration-200 shadow-lg"
@@ -632,10 +563,6 @@ export default function EventDetailsPage() {
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
                     <span className="text-gray-700 font-medium text-sm">Attendees</span>
                     <span className="font-bold text-gray-900 text-lg">{eventStats.attendees}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
-                    <span className="text-gray-700 font-medium text-sm">Interested</span>
-                    <span className="font-bold text-gray-900 text-lg">{eventStats.interested}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
                     <span className="text-gray-700 font-medium text-sm">Shares</span>

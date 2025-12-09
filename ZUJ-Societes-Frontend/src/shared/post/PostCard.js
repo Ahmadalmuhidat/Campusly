@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import AxiosClient from '../../config/axios';
 import { useAuth } from '../../context/AuthContext';
 import CommentList from './CommentList';
+import { formatEventDate } from '../../utils/dateUtils';
 
 export default function PostCard({ post, onPostDeleted }) {
   const { isAuthenticated, user } = useAuth();
@@ -11,7 +12,7 @@ export default function PostCard({ post, onPostDeleted }) {
   const [showComments, setShowComments] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
-  const [isLiked, setIsLiked] = useState(post.Is_Liked || false);
+  const [isLiked, setIsLiked] = useState(post.IsLiked || false);
   const [likesCount, setLikesCount] = useState(post.Likes || 0);
   const [mounted, setMounted] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -28,16 +29,12 @@ export default function PostCard({ post, onPostDeleted }) {
     );
 
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
       if (!prevIsLiked) {
-        await AxiosClient.post('/posts/like_post', {
-          token,
+        await AxiosClient.post('/posts/like', {
           post_id: post.ID,
         });
       } else {
-        await AxiosClient.post('/posts/unlike_post', {
-          token,
+        await AxiosClient.post('/posts/unlike', {
           post_id: post.ID,
         });
       }
@@ -68,8 +65,7 @@ export default function PostCard({ post, onPostDeleted }) {
     setShowComments(true);
 
     try {
-      const response = await AxiosClient.post('/comment/create_comment', {
-        token: localStorage.getItem('token') || sessionStorage.getItem('token'),
+      const response = await AxiosClient.post('/comments', {
         content: commentText,
         post_id: post.ID,
       });
@@ -88,7 +84,7 @@ export default function PostCard({ post, onPostDeleted }) {
   const handleDeletePost = async () => {
     try {
       setIsDeleting(true);
-      const response = await AxiosClient.delete('/posts/delete_post', {
+      const response = await AxiosClient.delete('/posts', {
         params: {
           post_id: post.ID,
         },
@@ -121,9 +117,8 @@ export default function PostCard({ post, onPostDeleted }) {
   const getComments = async () => {
     try {
       setLoadingComments(true);
-      const response = await AxiosClient.get('/comment/get_comments_by_post', {
+      const response = await AxiosClient.get('/comments', {
         params: {
-          token: localStorage.getItem('token') || sessionStorage.getItem('token') || '',
           post_id: post.ID,
         },
       });
@@ -147,9 +142,8 @@ export default function PostCard({ post, onPostDeleted }) {
       return toast.info('Please enter a report message.');
     }
     try {
-      const response = await AxiosClient.post('/report/report_post', {
+      const response = await AxiosClient.post('/posts/report', {
         post_id: post.ID,
-        user_id: localStorage.getItem('token') || sessionStorage.getItem('token'),
         message: reportMessage,
       });
 
@@ -243,7 +237,7 @@ export default function PostCard({ post, onPostDeleted }) {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">{post.User_Name}</h3>
-                <p className="text-xs text-gray-500">Just now</p>
+                <p className="text-xs text-gray-500">{formatEventDate(post.CreatedAt)}</p>
               </div>
             </div>
             {/* Delete button for post owner */}

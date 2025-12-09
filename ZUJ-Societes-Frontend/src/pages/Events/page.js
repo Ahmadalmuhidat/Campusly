@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import EventCard from './Components/EventCard';
 import EventCalendar from '../../shared/components/EventCalendar';
-import AdvancedEventFilters from '../../shared/components/AdvancedEventFilters';
-import GlobalSearch from '../../shared/components/GlobalSearch';
 import AxiosClient from '../../config/axios';
 
 export default function Events() {
@@ -13,7 +11,7 @@ export default function Events() {
   const getEvents = async () => {
     try {
       setLoading(true);
-      const response = await AxiosClient.get("/events/get_all_events");
+      const response = await AxiosClient.get("/events");
       if (response.status === 200) {
         setEvents(response.data.data);
       }
@@ -40,9 +38,6 @@ export default function Events() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Content */}
           <div className="lg:w-2/3">
-            <div className="mb-6">
-              <AdvancedEventFilters events={events} />
-            </div>
 
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -65,7 +60,7 @@ export default function Events() {
 
                 {events.length === 0 && (
                   <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
+                    <p className="text-gray-500 text-lg">No events found.</p>
                   </div>
                 )}
               </>

@@ -32,7 +32,7 @@ export default function MembersList({ id, members, setMembers }) {
 
   const removeMember = async (userId) => {
     try {
-      const response = await AxiosClient.delete("/societies/remove_member", {
+      const response = await AxiosClient.delete("/societies/members", {
         params: {
           society_id: id,
           user_id: userId
@@ -50,7 +50,7 @@ export default function MembersList({ id, members, setMembers }) {
 
   const getAllSocietyMembers = async () => {
     try {
-      const response = await AxiosClient.get("/societies/get_all_members", {
+      const response = await AxiosClient.get("/societies/members", {
         params: { society_id: id }
       });
       if (response.status === 200) {

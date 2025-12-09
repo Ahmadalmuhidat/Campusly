@@ -1,18 +1,17 @@
 const Support = require("../models/support");
 const Report = require("../models/reports");
-const { v4: uuidv4 } = require("uuid");
-const jsonWebToken = require("../helper/json_web_token");
+const jsonWebToken = require("../helpers/jsonWebToken");
 
 exports.CreateTicket = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
+    const { subject, category, content} = req.body;
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const newTicket = new Support({
-      ID: uuidv4(),
       User: userId,
-      Category: req.body.category,
-      Subject: req.body.subject,
-      Content: req.body.content
+      Category: category,
+      Subject: subject,
+      Content: content
     });
 
     await newTicket.save();
@@ -25,14 +24,15 @@ exports.CreateTicket = async (req, res) => {
 
 exports.reportPost = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
+    const {post_id, message} = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const newReport = new Report({
-      ID: uuidv4(),
       Type: "post",
-      ReferenceID: req.body.post_id,
+      ReferenceID: post_id,
       User: userId,
-      Reason: req.body.reason || ""
+      Reason: message || ""
     });
 
     await newReport.save();
@@ -45,14 +45,15 @@ exports.reportPost = async (req, res) => {
 
 exports.reportEvent = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
+    const { event_id, reason } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const newReport = new Report({
-      ID: uuidv4(),
       Type: "event",
-      ReferenceID: req.body.event_id,
+      ReferenceID: event_id,
       User: userId,
-      Reason: req.body.reason || ""
+      Reason: reason || ""
     });
 
     await newReport.save();

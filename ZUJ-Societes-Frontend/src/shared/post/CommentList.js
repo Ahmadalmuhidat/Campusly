@@ -21,10 +21,9 @@ export default function CommentList({ comments, postId, onCommentDeleted }) {
     
     setIsDeleting(true);
     try {
-      const response = await AxiosClient.delete('/comment/delete_comment', {
+      const response = await AxiosClient.delete('/comments', {
         params: {
-          comment_id: commentToDelete.ID,
-          token: localStorage.getItem('token') || sessionStorage.getItem('token'),
+          comment_id: commentToDelete.ID
         },
       });
 
@@ -52,19 +51,9 @@ export default function CommentList({ comments, postId, onCommentDeleted }) {
     setShowDeleteModal(false);
     setCommentToDelete(null);
   };
-
   
-  const canDeleteComment = (comment) => {
-    console.log('Debug comment deletion:');
-    console.log('isAuthenticated:', isAuthenticated);
-    console.log('user:', user);
-    console.log('comment:', comment);
-    console.log('user.ID:', user?.ID);
-    console.log('comment.User_ID:', comment.User_ID);
-    console.log('comment.User:', comment.User);
-    
+  const showDeleteCommentButton = (comment) => {    
     const canDelete = isAuthenticated && user && (user.ID === comment.User_ID || user.ID === comment.User || user.Role === 'admin');
-    console.log('canDelete:', canDelete);
     return canDelete;
   };
 
@@ -116,8 +105,7 @@ export default function CommentList({ comments, postId, onCommentDeleted }) {
             <div className="ml-2 bg-gray-100 rounded-lg p-3 flex-1">
               <div className="flex justify-between items-start">
                 <h4 className="font-semibold text-sm">{comment.User_Name}</h4>
-                {/* Delete button - only show if user can delete this comment */}
-                {canDeleteComment(comment) && (
+                {showDeleteCommentButton(comment) && (
                   <button
                     onClick={() => openDeleteModal(comment)}
                     className="text-red-500 hover:text-red-600 ml-2"

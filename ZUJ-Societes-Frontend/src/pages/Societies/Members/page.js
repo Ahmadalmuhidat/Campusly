@@ -18,7 +18,7 @@ export default function SocietyMembers() {
 
   const getAllSocietyMembers = async () => {
     try {
-      const response = await AxiosClient.get("/societies/get_all_members", {
+      const response = await AxiosClient.get("/societies/members", {
         params: { society_id: id }
       });
 

@@ -14,14 +14,14 @@ export default function MySocieties() {
 
   const getSocietiesByUser = async () => {
     try {
-      const response = await AxiosClient.get("/societies/get_societies_by_user", {
-        params: {
-          token: localStorage.getItem("token") || sessionStorage.getItem("token")
-        }
-      });
+      const response = await AxiosClient.get("/user/societies");
 
       if (response.status === 200) {
-        setSocieties(response.data.data);
+        const unique = Array.from(
+          new Map(response.data.data.map(s => [s.ID, s])).values()
+        );
+
+        setSocieties(unique);
       }
     } catch (error) {
       console.error("Failed to fetch societies:", error);

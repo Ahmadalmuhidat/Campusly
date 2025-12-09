@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import SocietyNav from './SocietyNav';
 import { useAuth } from '../../../context/AuthContext';
 import AxiosClient from '../../../config/axios';
+import { useSocietyMembership } from '../../../context/MembershipContext';
 
 const societyDetailsCache = new Map();
 const joinStatusCache = new Map();
@@ -13,11 +15,16 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
   const { isAuthenticated } = useAuth();
   const [joinRequested, setJoinRequested] = useState(Boolean(cacheJoin));
   const [mounted, setMounted] = useState(Boolean(cacheDetails));
+  const [dropdownOpen, setDropdownOpen] = useState(false); // new
   const fetchedRef = useRef(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { isMember, clearMembership } = useSocietyMembership(id);
+  const defaultImage = 'https://img.freepik.com/free-vector/multicultural-people-standing-together_74855-6583.jpg';
 
   const getSocietyDetails = async () => {
     try {
-      const response = await AxiosClient.get('/societies/get_society_info', {
+      const response = await AxiosClient.get('/societies/info', {
         params: { society_id: societyId },
       });
       if (response.status === 200) {
@@ -31,18 +38,12 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
 
   const checkJoinRequest = async () => {
     try {
-      const response = await AxiosClient.get('/societies/join_requests/check', {
-        params: {
-          token: localStorage.getItem("token") || sessionStorage.getItem("token"),
-          society_id: societyId
-        },
+      const response = await AxiosClient.get('/societies/requests/check', {
+        params: { society_id: societyId },
       });
-
-      if (response.status === 200) {
-        if (response.data.data == "pending") {
-          joinStatusCache.set(societyId, true);
-          setJoinRequested(true);
-        }
+      if (response.status === 200 && response.data.data === "pending") {
+        joinStatusCache.set(societyId, true);
+        setJoinRequested(true);
       }
     } catch (error) {
       console.error('Error fetching society details:', error);
@@ -51,21 +52,27 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
 
   const handleJoinSociety = async () => {
     if (!isAuthenticated) return;
-
     try {
-      const response = await AxiosClient.post("/societies/join_request", {
-        society_id: societyId,
-        token: localStorage.getItem("token") || sessionStorage.getItem("token")
-      });
-
+      const response = await AxiosClient.post("/societies/requests", { society_id: societyId });
       if (response.status === 201) {
         joinStatusCache.set(societyId, true);
         setJoinRequested(true);
       }
     } catch (error) {
       console.error('Failed to request join:', error);
-      const errorMessage = error.response?.data?.error_message || 'Failed to send join request. Please try again.';
-      alert(errorMessage);
+    }
+  };
+
+  const handleLeaveSociety = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await AxiosClient.post("/societies/leave", { society_id: societyId });
+      if (response.status === 200) {
+        clearMembership(societyId);
+        navigate('/societies');
+      }
+    } catch (error) {
+      console.error('Failed to leave society:', error);
     }
   };
 
@@ -87,21 +94,16 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
       <div className={`relative h-48 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-        
-        {/* Floating elements for visual interest */}
         <div className="absolute top-4 right-4 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
         <div className="absolute bottom-4 left-4 w-12 h-12 bg-purple-300/20 rounded-full blur-lg"></div>
-        
         <div className="relative z-10 max-w-6xl mx-auto px-4 h-full flex items-end pb-6">
           <div className="flex items-end space-x-4">
             <div className="w-24 h-24 bg-white rounded-xl shadow-2xl overflow-hidden border-4 border-white relative group z-20">
               <img
-                src={details.Image}
+                src={details.Image || defaultImage}
                 alt={details.Name}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = `https://via.placeholder.com/128x128/3B82F6/ffffff?text=${encodeURIComponent(details.Name?.charAt(0) || 'S')}`;
-                }}
+                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = defaultImage; }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
@@ -129,6 +131,7 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               {/* Society Stats */}
               <div className="grid grid-cols-3 gap-4">
+                {/* Members */}
                 <div className="text-center">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +141,7 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
                   <div className="text-lg font-bold text-gray-900">{details.Member_Count || 0}</div>
                   <div className="text-xs text-gray-600">Members</div>
                 </div>
-                
+                {/* Events */}
                 <div className="text-center">
                   <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +151,7 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
                   <div className="text-lg font-bold text-gray-900">{details.Event_Count || 0}</div>
                   <div className="text-xs text-gray-600">Events</div>
                 </div>
-                
+                {/* Posts */}
                 <div className="text-center">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,23 +164,49 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 relative">
                 {actionButton}
+
                 {showJoinButton && isAuthenticated && (
                   <button
                     onClick={handleJoinSociety}
                     disabled={joinRequested}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
-                      joinRequested
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${joinRequested
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                    }`}
+                      }`}
                   >
                     <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                     {joinRequested ? 'Request Sent' : 'Join Society'}
                   </button>
+                )}
+
+                {/* Dropdown */}
+                {isAuthenticated && isMember && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-md flex items-center gap-1"
+                    >
+                      Actions
+                      <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {dropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                        <button
+                          onClick={handleLeaveSociety}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          Leave Society
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

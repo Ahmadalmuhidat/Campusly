@@ -1,25 +1,25 @@
 const Comment = require("../models/comments");
 const User = require("../models/users");
 const Post = require("../models/posts");
-const { v4: uuidv4 } = require("uuid");
-const jsonWebToken = require("../helper/json_web_token");
-const { sendNotificationToUsers } = require('./notifications');
+const jsonWebToken = require("../helpers/jsonWebToken");
+const serverSentEvents = require('../helpers/serverSentEvents');
 
 exports.createComment = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
+    const { content, post_id } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const newComment = new Comment({
-      ID: uuidv4(),
-      Content: req.body.content,
-      Post: req.body.post_id,
+      Content: content,
+      Post: post_id,
       User: userId
     });
 
     await newComment.save();
 
     try {
-      const post = await Post.findOne({ ID: req.body.post_id });
+      const post = await Post.findOne({ ID: post_id });
       if (post && post.User.toString() !== userId) {
         const user = await User.findOne({ ID: userId }).select('Name Photo');
         
@@ -35,7 +35,7 @@ exports.createComment = async (req, res) => {
           time: new Date().toISOString()
         };
 
-        await sendNotificationToUsers([post.User.toString()], notification);
+        await serverSentEvents.sendToUser([post.User.toString()], notification);
       }
     } catch (notificationError) {
       console.error('Failed to send comment notification:', notificationError);
@@ -50,8 +50,9 @@ exports.createComment = async (req, res) => {
 
 exports.deleteComment = async (req, res) => {
   try {
-    const { comment_id, token } = req.query;
-    const userId = jsonWebToken.verify_token(token)['id'];
+    const { comment_id } = req.query;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const comment = await Comment.findOne({ ID: comment_id });
     if (!comment) {
@@ -72,7 +73,8 @@ exports.deleteComment = async (req, res) => {
 
 exports.getCommentsByPost = async (req, res) => {
   try {
-    const comments = await Comment.find({ Post: req.query.post_id }).lean();
+    const { post_id } = req.query;
+    const comments = await Comment.find({ Post: post_id }).lean();
 
     const userIds = comments.map(c => c.User);
     const users = await User.find({ ID: { $in: userIds } }).select("ID Name Photo").lean();

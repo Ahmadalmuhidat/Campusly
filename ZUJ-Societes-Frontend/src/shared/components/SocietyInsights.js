@@ -26,10 +26,7 @@ export default function SocietyInsights({ societies = [] }) {
       
       const fetchSocieties = async () => {
         try {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const response = await AxiosClient.get('/societies/get_all_societies', { 
-            params: { token } 
-          });
+          const response = await AxiosClient.get('/societies');
           if (response.status === 200) {
             const fetchedSocieties = response.data.data || [];
             setInsights(prev => ({
@@ -95,17 +92,17 @@ export default function SocietyInsights({ societies = [] }) {
     <div className="bg-white rounded-2xl shadow-card p-4 border border-gray-100 hover:shadow-lg transition-all duration-300">
       <div className="flex items-center">
         <div className={`p-3 rounded-xl bg-${color}-100`}>
-          <svg className={`w-5 h-5 text-${color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 text-${color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
           </svg>
         </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-xl font-bold text-gray-900">{value}</p>
+        <div className="ml-3">
+          <p className="text-xs font-medium text-gray-500">{title}</p>
+          <p className="text-lg font-semibold text-gray-900">{value}</p>
         </div>
       </div>
     </div>
-  );
+  );  
 
   const SocietyList = ({ title, societies, emptyMessage, maxItems = 3 }) => (
     <div className="bg-white rounded-2xl shadow-card p-6 mb-6 border border-gray-100">

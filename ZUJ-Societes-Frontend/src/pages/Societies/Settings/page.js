@@ -34,8 +34,6 @@ export default function SocietySettings() {
     },
     notifications: {
       newMemberNotifications: true,
-      eventReminders: true,
-      weeklyDigest: false,
       emailNotifications: true
     }
   });
@@ -46,8 +44,7 @@ export default function SocietySettings() {
 
   const handleSaveChanges = async () => {
     try {
-      const response = await AxiosClient.put("/societies/update_info", {
-        token: localStorage.getItem("token") || sessionStorage.getItem("token"),
+      const response = await AxiosClient.put("/societies", {
         society_id: id,
         name: settings.general.name,
         description: settings.general.description,
@@ -68,7 +65,7 @@ export default function SocietySettings() {
   const handleDeleteSociety = async () => {
     try {
       setIsDeleting(true);
-      const response = await AxiosClient.delete('/societies/delete_society', {
+      const response = await AxiosClient.delete('/societies', {
         params: {
           society_id: id,
         },
@@ -88,7 +85,7 @@ export default function SocietySettings() {
 
   const getSocietyDetails = async () => {
     try {
-      const response = await AxiosClient.get('/societies/get_society_info', {
+      const response = await AxiosClient.get('/societies/info', {
         params: { society_id: id },
       });
 
@@ -115,8 +112,6 @@ export default function SocietySettings() {
           },
           notifications: data.Notifications || {
             newMemberNotifications: true,
-            eventReminders: true,
-            weeklyDigest: false,
             emailNotifications: true
           }
         };
@@ -172,7 +167,7 @@ export default function SocietySettings() {
   
   const saveSwitchSettings = async () => {
     try {
-      const response = await AxiosClient.put('/societies/update_info', {
+      const response = await AxiosClient.put('/societies', {
         society_id: id,
         privacy: settings.privacy,
         permissions: settings.permissions,
@@ -200,7 +195,7 @@ export default function SocietySettings() {
 
   const leaveSociety = async () => {
     try {
-      const response = await AxiosClient.put("/societies/leave_society", {
+      const response = await AxiosClient.put("/societies/leave", {
         society_id: id
       });
 

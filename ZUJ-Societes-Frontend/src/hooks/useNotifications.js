@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AxiosClient from '../config/axios';
+import { toast } from 'react-toastify';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -11,12 +12,7 @@ export const useNotifications = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!token) return;
-
-      const response = await AxiosClient.get('/notifications', {
-        params: { token }
-      });
+      const response = await AxiosClient.get('/notifications');
 
       if (response.status === 200) {
         setNotifications(response.data.data);
@@ -37,9 +33,8 @@ export const useNotifications = () => {
     }
 
     const sse = new EventSource(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/notifications/sse?token=${token}`);
-    
+
     sse.onopen = () => {
-      console.log('SSE connection opened');
       setIsConnected(true);
       setReconnectAttempts(0);
     };
@@ -47,29 +42,38 @@ export const useNotifications = () => {
     sse.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         if (data.type === 'connected') {
           console.log('Connected to notifications:', data.message);
         } else if (data.type === 'heartbeat') {
           console.log('SSE heartbeat received');
         } else {
-          console.log('New notification received:', data);
-          
           setNotifications(prev => {
-            const exists = prev.some(n => n.id === data.id);
-            if (exists) return prev;
-            
+            const exists = prev.some(notification => notification.id === data.id);
+            if (exists) {
+              return prev;
+            }
             return [data, ...prev];
           });
-          
+
           setUnreadCount(prev => prev + 1);
-          
+
           if (Notification.permission === 'granted') {
             new Notification(data.title, {
               body: data.message,
               icon: '/favicon.ico'
             });
           }
+
+          toast.info(`${data.title}: ${data.message}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
         }
       } catch (error) {
         console.error('Error parsing SSE data:', error);
@@ -79,11 +83,11 @@ export const useNotifications = () => {
     sse.onerror = (error) => {
       console.error('SSE connection error:', error);
       setIsConnected(false);
-      
+
       if (sse.readyState === EventSource.CLOSED && reconnectAttempts < maxReconnectAttempts) {
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
         console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-        
+
         setTimeout(() => {
           setReconnectAttempts(prev => prev + 1);
           connectSSE();
@@ -106,17 +110,12 @@ export const useNotifications = () => {
 
   const markAsRead = useCallback(async (notificationId) => {
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      console.log('Frontend marking notification as read:', notificationId);
-      
       await AxiosClient.post('/notifications/mark-read', {
-        token,
         notificationId
       });
 
-      setNotifications(prev => 
-        prev.map(notif => 
+      setNotifications(prev =>
+        prev.map(notif =>
           notif.ID === notificationId || notif.id === notificationId
             ? { ...notif, Read: true, read: true }
             : notif
@@ -130,11 +129,7 @@ export const useNotifications = () => {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      await AxiosClient.post('/notifications/mark-all-read', {
-        token
-      });
+      await AxiosClient.post('/notifications/mark-all-read');
 
       setNotifications(prev => prev.map(notif => ({ ...notif, Read: true, read: true })));
       setUnreadCount(0);
@@ -154,7 +149,7 @@ export const useNotifications = () => {
   useEffect(() => {
     fetchNotifications();
     requestNotificationPermission();
-    
+
     const timer = setTimeout(() => {
       connectSSE();
     }, 1000);

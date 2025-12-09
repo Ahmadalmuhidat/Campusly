@@ -1,12 +1,18 @@
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require('uuid');
 
 const eventInteractionsSchema = new mongoose.Schema({
-  ID: { type: String, unique: true, required: true },
+  ID: { 
+    type: String, 
+    unique: true, 
+    required: true,
+    default: function() { return uuidv4(); }
+  },
   Event: { type: String, required: true },
   User: { type: String, required: true },
   Action: { 
     type: String, 
-    enum: ['bookmark', 'share', 'view'], 
+    enum: [ 'share', 'view'], 
     required: true 
   },
   CreatedAt: { type: Date, default: Date.now }

@@ -1,12 +1,13 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const SECRET = process.env.SECRET;
+// const SECRET = "123_secret_key";
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is not set in environment variables.");
+if (!SECRET) {
+  throw new Error("SECRET is not set in environment variables.");
 }
 
-function generate_token(user) {
+exports.generateToken = (user) => {
   if (!user?.id || !user?.email) {
     throw new Error("Invalid user object provided.");
   }
@@ -16,21 +17,17 @@ function generate_token(user) {
       id: user.id,
       email: user.email,
     },
-    JWT_SECRET,
+    SECRET,
     { expiresIn: '30d' }
   );
 }
 
-function verify_token(token) {
+exports.verifyToken = (token) => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, SECRET);
   } catch (err) {
     console.warn("Invalid or expired token:", err.message);
     return null;
   }
 }
 
-module.exports = {
-  generate_token,
-  verify_token,
-};

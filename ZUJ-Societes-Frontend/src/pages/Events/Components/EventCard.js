@@ -31,7 +31,7 @@ export default function EventCard({ onEventDeleted, ...event }) {
     try {
       setIsDeleting(true);
       
-      const response = await AxiosClient.delete("/events/delete_event", {
+      const response = await AxiosClient.delete("/events", {
         params: { 
           event_id: event.ID
         }

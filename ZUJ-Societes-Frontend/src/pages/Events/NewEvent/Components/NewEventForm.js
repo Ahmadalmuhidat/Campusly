@@ -97,19 +97,19 @@ export default function NewEventForm() {
       if (formData.description.length < 20) newErrors.description = 'Description must be at least 20 characters';
       if (!formData.category) newErrors.category = 'Category is required';
     }
-    
+
     if (step === 2) {
       if (!formData.date) newErrors.date = 'Event date is required';
       if (!formData.startTime) newErrors.startTime = 'Start time is required';
       if (formData.endTime && formData.startTime && formData.endTime <= formData.startTime) {
         newErrors.endTime = 'End time must be after start time';
       }
-    if (!formData.isOnline && !formData.location.trim()) {
-      newErrors.location = 'Location is required for in-person events';
-    }
-    if (formData.isOnline && !formData.onlineLink.trim()) {
-      newErrors.onlineLink = 'Online meeting link is required for virtual events';
-    }
+      if (!formData.isOnline && !formData.location.trim()) {
+        newErrors.location = 'Location is required for in-person events';
+      }
+      if (formData.isOnline && !formData.onlineLink.trim()) {
+        newErrors.onlineLink = 'Online meeting link is required for virtual events';
+      }
     }
 
     setErrors(newErrors);
@@ -134,8 +134,6 @@ export default function NewEventForm() {
 
   const createNewEvent = async (e) => {
     e.preventDefault();
-
-    
     if (currentStep !== 3) {
       return;
     }
@@ -147,12 +145,12 @@ export default function NewEventForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await AxiosClient.post("/events/create_event", {
-        token: localStorage.getItem("token") || sessionStorage.getItem("token"),
+      const response = await AxiosClient.post("/events", {
         title: formData.title,
         description: formData.description,
         date: formData.date,
-        time: formData.startTime,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
         category: formData.category,
         society_id: id,
         location: formData.location,
@@ -183,11 +181,10 @@ export default function NewEventForm() {
         <div className="flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                currentStep >= step.number
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.number
                   ? 'bg-primary-600 border-primary-600 text-white'
                   : 'border-gray-300 text-gray-400'
-              }`}>
+                }`}>
                 {currentStep > step.number ? (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -203,9 +200,8 @@ export default function NewEventForm() {
                 <p className="text-xs text-gray-500">{step.description}</p>
               </div>
               {index < steps.length - 1 && (
-                <div className={`hidden sm:block w-16 h-0.5 mx-4 ${
-                  currentStep > step.number ? 'bg-primary-600' : 'bg-gray-300'
-                }`} />
+                <div className={`hidden sm:block w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-primary-600' : 'bg-gray-300'
+                  }`} />
               )}
             </div>
           ))}
@@ -229,15 +225,14 @@ export default function NewEventForm() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Event Title *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                    errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                  }`}
+                  Event Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter your event title"
                 />
                 {errors.title && (
@@ -248,19 +243,18 @@ export default function NewEventForm() {
                     {errors.title}
                   </p>
                 )}
-          </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              rows={4}
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none ${
-                    errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                  }`}
+                  Description *
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none ${errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Describe what your event is about, what attendees will learn or experience..."
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -276,23 +270,22 @@ export default function NewEventForm() {
                   )}
                   <span className="text-gray-400 text-sm">{formData.description.length}/500</span>
                 </div>
-          </div>
+              </div>
 
-          <div>
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Category *
-            </label>
+                  Category *
+                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {categories.map(category => (
                     <button
                       key={category.value}
                       type="button"
                       onClick={() => handleInputChange('category', category.value)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
-                        formData.category === category.value
+                      className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${formData.category === category.value
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center space-x-3">
                         <span className="text-2xl">{category.icon}</span>
@@ -303,7 +296,7 @@ export default function NewEventForm() {
                       </div>
                     </button>
                   ))}
-          </div>
+                </div>
                 {errors.category && (
                   <p className="text-red-600 text-sm mt-2 flex items-center">
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -312,9 +305,9 @@ export default function NewEventForm() {
                     {errors.category}
                   </p>
                 )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
         )}
 
         {/* Step 2: Date & Location */}
@@ -327,18 +320,17 @@ export default function NewEventForm() {
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Event Date *
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => handleInputChange('date', e.target.value)}
+                    Event Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleInputChange('date', e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.date ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.date && (
                     <p className="text-red-600 text-sm mt-2 flex items-center">
@@ -348,19 +340,18 @@ export default function NewEventForm() {
                       {errors.date}
                     </p>
                   )}
-          </div>
+                </div>
 
-          <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Start Time *
-            </label>
-            <input
-              type="time"
-              value={formData.startTime}
-              onChange={(e) => handleInputChange('startTime', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.startTime ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.startTime ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.startTime && (
                     <p className="text-red-600 text-sm mt-2 flex items-center">
@@ -370,20 +361,19 @@ export default function NewEventForm() {
                       {errors.startTime}
                     </p>
                   )}
-        </div>
-      </div>
+                </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   End Time (Optional)
                 </label>
-              <input
+                <input
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleInputChange('endTime', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                    errors.endTime ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.endTime ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {errors.endTime && (
                   <p className="text-red-600 text-sm mt-2 flex items-center">
@@ -401,28 +391,27 @@ export default function NewEventForm() {
                   <p className="text-sm text-gray-600">Check if this is a virtual event</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-              <input
+                  <input
                     type="checkbox"
-                checked={formData.isOnline}
+                    checked={formData.isOnline}
                     onChange={(e) => handleInputChange('isOnline', e.target.checked)}
                     className="sr-only peer"
-              />
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
-          </div>
+                </label>
+              </div>
 
-          {!formData.isOnline ? (
-            <div>
+              {!formData.isOnline ? (
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Venue Location *
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.location ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
+                    Venue Location *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.location ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="e.g., Main Auditorium, Room 101, Building A"
                   />
                   {errors.location && (
@@ -433,21 +422,20 @@ export default function NewEventForm() {
                       {errors.location}
                     </p>
                   )}
-            </div>
-          ) : (
-            <div>
+                </div>
+              ) : (
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Online Meeting Link *
-              </label>
-              <input
-                type="url"
-                value={formData.onlineLink}
-                onChange={(e) => handleInputChange('onlineLink', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.onlineLink ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
-                placeholder="https://zoom.us/j/... or https://meet.google.com/..."
-              />
+                    Online Meeting Link *
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.onlineLink}
+                    onChange={(e) => handleInputChange('onlineLink', e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.onlineLink ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="https://zoom.us/j/... or https://meet.google.com/..."
+                  />
                   {errors.onlineLink && (
                     <p className="text-red-600 text-sm mt-2 flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -503,10 +491,10 @@ export default function NewEventForm() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-            </div>
-          )}
-        </div>
-      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -551,11 +539,10 @@ export default function NewEventForm() {
                       key={tag}
                       type="button"
                       onClick={() => handleTagToggle(tag)}
-                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 ${
-                        formData.tags.includes(tag)
+                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 ${formData.tags.includes(tag)
                           ? 'bg-primary-100 text-primary-700 border border-primary-200'
                           : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       {tag}
                     </button>
@@ -568,13 +555,13 @@ export default function NewEventForm() {
 
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center">
-        <button
-          type="button"
-          onClick={() => navigate(`/societies/${id}/events`)}
+          <button
+            type="button"
+            onClick={() => navigate(`/societies/${id}/events`)}
             className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-        >
-          Cancel
-        </button>
+          >
+            Cancel
+          </button>
 
           <div className="flex space-x-3">
             {currentStep > 1 && (
@@ -596,31 +583,30 @@ export default function NewEventForm() {
                 Next Step
               </button>
             ) : (
-        <button
-          type="submit"
-          disabled={isSubmitting}
-                className={`px-6 py-3 rounded-xl transition-colors ${
-                  isSubmitting
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-6 py-3 rounded-xl transition-colors ${isSubmitting
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-primary-600 hover:bg-primary-700 text-white'
-                }`}
-        >
-          {isSubmitting ? (
+                  }`}
+              >
+                {isSubmitting ? (
                   <div className="flex items-center space-x-2">
                     <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                     <span>Creating Event...</span>
-            </div>
-          ) : (
-            'Create Event'
-          )}
-        </button>
+                  </div>
+                ) : (
+                  'Create Event'
+                )}
+              </button>
             )}
           </div>
-      </div>
-    </form>
+        </div>
+      </form>
     </div>
   );
 }

@@ -12,15 +12,16 @@ export default function PublicProfile() {
   const [posts, setPosts] = useState([]);
   const [attendedEvents, setAttendedEvents] = useState([]);
   const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/4537/4537019.png';
+  const defaultEventImage = 'https://img.freepik.com/free-vector/multicultural-people-standing-together_74855-6583.jpg';
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [p, s, po, ae] = await Promise.all([
-        AxiosClient.get('/users/get_user_public_profile', { params: { user_id: id } }),
-        AxiosClient.get('/societies/get_societies_by_user_public', { params: { user_id: id } }),
-        AxiosClient.get('/posts/get_posts_by_user', { params: { user_id: id } }),
-        AxiosClient.get('/events/get_events_attended_by_user', { params: { user_id: id, limit: 6 } }),
+        AxiosClient.get('/users/profile/public', { params: { user_id: id } }),
+        AxiosClient.get('/users/societies/public', { params: { user_id: id } }),
+        AxiosClient.get('/users/posts', { params: { user_id: id } }),
+        AxiosClient.get('/users/events', { params: { user_id: id, limit: 6 } }),
       ]);
       if (p.status === 200) {
         setProfile(p.data.data);
@@ -74,7 +75,7 @@ export default function PublicProfile() {
                     <div className="relative group">
                       <div className="w-20 h-20 bg-white rounded-xl border-3 border-white shadow-lg overflow-hidden relative">
                         <img
-                          src={profile?.Image || defaultAvatar}
+                          src={profile?.Photo}
                           alt={profile?.Name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -155,7 +156,7 @@ export default function PublicProfile() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
-                        <div className="text-lg font-bold text-gray-900">{profile?.Post_Count || posts.length}</div>
+                        <div className="text-lg font-bold text-gray-900">{profile?.Post_Count || 0}</div>
                         <div className="text-xs text-gray-600 font-medium">Posts</div>
                       </div>
 
@@ -259,7 +260,7 @@ export default function PublicProfile() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 shadow-md">
                             <img
-                              src={event.Image || 'https://placehold.co/80x80?text=E'}
+                              src={event.Image || defaultEventImage}
                               alt={event.Title}
                               className="w-full h-full object-cover"
                             />

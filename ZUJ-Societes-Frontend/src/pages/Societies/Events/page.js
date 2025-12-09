@@ -13,11 +13,11 @@ export default function SocietyEvents() {
   const [filter, setFilter] = useState('upcoming');
   const [searchTerm, setSearchTerm] = useState('');
   const [events, setEvents] = useState([]);
-  const { isMember } = useSocietyMembership(id);
+  const { isMember, isAdmin } = useSocietyMembership(id);
   const [mounted, setMounted] = useState(false);
 
   const getEventsBySociety = async () => {
-    const response = await AxiosClient.get("/events/get_events_by_society", {
+    const response = await AxiosClient.get("/societies/events", {
       params: { society_id: id }
     });
 
@@ -45,14 +45,14 @@ export default function SocietyEvents() {
       <SocietyHeader
         societyId={id || '1'}
         actionButton={
-          isMember ? (
+          isMember && isAdmin && (
             <Link
               to={`/societies/${id}/events/new`}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Create Event
             </Link>
-          ) : null
+          )
         }
       />
 

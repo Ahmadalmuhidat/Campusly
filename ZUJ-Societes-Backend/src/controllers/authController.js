@@ -1,8 +1,7 @@
 const User = require("../models/users");
-const passwords_helper = require("../helper/passwords");
-const jsonWebToken = require("../helper/json_web_token");
+const passwords_helper = require("../helpers/passwords");
+const jsonWebToken = require("../helpers/jsonWebToken");
 const mailer = require("../services/mailer")
-const { v4: uuidv4 } = require("uuid");
 
 exports.login = async (req, res) => {
   try {
@@ -11,10 +10,10 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ Email: email });
     if (!user) return res.status(404).json({ error_message: "User not found" });
 
-    const isPasswordCorrect = await passwords_helper.verify_password(password, user.Password);
+    const isPasswordCorrect = await passwords_helper.verifyPassword(password, user.Password);
     if (!isPasswordCorrect) return res.status(401).json({ error_message: "Password is incorrect" });
 
-    const token = jsonWebToken.generate_token({
+    const token = jsonWebToken.generateToken({
       id: user.ID,
       name: user.Name,
       email: user.Email
@@ -29,16 +28,17 @@ exports.login = async (req, res) => {
 
 exports.register = async (req, res) => {
   try {
-    const studentId = req.body.student_id;
+    const {student_id, name, email, password, phone_number, bio, photo} = req.body;
+
+    const studentId = student_id;
     const enrollmentYear = parseInt(studentId.toString().substring(0, 4), 10);
     const currentYear = new Date().getFullYear();
-    const otp = generateOTP();
 
     if (currentYear - enrollmentYear > 7) {
       return res.status(400).json({ error_message: "Student ID is older than 7 years" });
     }
 
-    const existingUserByEmail = await User.findOne({ Email: req.body.email });
+    const existingUserByEmail = await User.findOne({ Email: email });
     if (existingUserByEmail) {
       return res.status(409).json({ 
         error_message: "Email already exists. Please use a different email address or try logging in." 
@@ -53,20 +53,19 @@ exports.register = async (req, res) => {
     }
 
     const newUser = new User({
-      ID: uuidv4(),
-      Name: req.body.name,
-      Email: req.body.email,
-      Password: await passwords_helper.hash_password(req.body.password),
+      Name: name,
+      Email: email.toLowerCase(),
+      Password: await passwords_helper.hashPassword(password),
       StudentID: studentId,
-      Photo: req.body.photo,
-      Bio: req.body.bio,
-      PhoneNumber: req.body.phone_number || "0000",
+      Photo: photo,
+      Bio: bio,
+      PhoneNumber: phone_number || "0000",
       CreatedAt: new Date()
     });
 
     const savedUser = await newUser.save();
 
-    // mailer.sendEmail(req.body.email, "OTP", "Your OTP");
+    // mailer.sendEmail(email, "OTP", "Your OTP");
 
     res.status(201).json({ data: savedUser });
 

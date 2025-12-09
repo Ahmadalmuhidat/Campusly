@@ -133,11 +133,10 @@ export default function NewSocietyForm() {
         description: formData.description,
         category: formData.category,
         visibility: formData.visibility,
-        image: formData.image,
-        token: localStorage.getItem('token') || sessionStorage.getItem('token')
+        image: formData.image
       };
 
-      const response = await AxiosClient.post('/societies/create_society', payload);
+      const response = await AxiosClient.post('/societies/create', payload);
 
       if (response.status === 201) {
         toast.success('Society has been created');

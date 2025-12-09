@@ -11,14 +11,12 @@ export default function ActivityFeed() {
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        
-        
+
         try {
-          const response = await AxiosClient.get('/analytics/activity-feed', { 
-            params: { token, limit: 6 } 
+          const response = await AxiosClient.get('/analytics/activity-feed', {
+            params: { limit: 6 }
           });
-          
+
           if (response.status === 200) {
             const activities = response.data.data.map(activity => ({
               ...activity,
@@ -28,66 +26,66 @@ export default function ActivityFeed() {
             return;
           }
         } catch (analyticsError) {
-          console.log('Analytics endpoint not available, falling back to individual calls');
+          console.error('Analytics endpoint not available, falling back to individual calls');
         }
 
         const [postsRes, eventsRes, societiesRes] = await Promise.allSettled([
-          AxiosClient.get('/posts/get_all_posts', { params: { token, limit: 5 } }),
-          AxiosClient.get('/events/get_all_events', { params: { limit: 5 } }),
-          AxiosClient.get('/societies/get_all_societies', { params: { limit: 5 } })
+          AxiosClient.get('/posts', { params: { limit: 5 } }),
+          AxiosClient.get('/events', { params: { limit: 5 } }),
+          AxiosClient.get('/societies', { params: { limit: 5 } })
         ]);
 
         const activities = [];
 
-        
+
         if (postsRes.status === 'fulfilled' && postsRes.value.status === 200) {
           const posts = postsRes.value.data.data || [];
           posts.slice(0, 3).forEach(post => {
             activities.push({
               id: `post-${post.ID}`,
-              type: 'post',
-              user: post.User_Name || 'Unknown User',
-              action: 'created a new post',
-              target: post.Society_Name || 'Unknown Society',
+              type: post.type,
+              user: post.User_Name,
+              action: post.action,
+              target: post.Society_Name,
               time: formatTimeAgo(post.CreatedAt),
               avatar: post.User_Image || 'https://cdn-icons-png.flaticon.com/512/4537/4537019.png'
             });
           });
         }
 
-        
+
         if (eventsRes.status === 'fulfilled' && eventsRes.value.status === 200) {
           const allEvents = eventsRes.value.data.data || [];
           allEvents.slice(0, 2).forEach(event => {
             activities.push({
               id: `event-${event.ID}`,
-              type: 'event',
-              user: event.Creator_Name || 'Unknown User',
-              action: 'created an event',
-              target: event.Title || 'New Event',
+              type: event.type,
+              user: event.Creator_Name,
+              action: event.action,
+              target: event.Title,
               time: formatTimeAgo(event.CreatedAt),
               avatar: event.Creator_Image || 'https://cdn-icons-png.flaticon.com/512/4537/4537019.png'
             });
           });
         }
 
-        
+
         if (societiesRes.status === 'fulfilled' && societiesRes.value.status === 200) {
           const societies = societiesRes.value.data.data || [];
           societies.slice(0, 2).forEach(society => {
             activities.push({
               id: `society-${society.ID}`,
-              type: 'society',
-              user: society.Creator_Name || 'Unknown User',
-              action: 'created a society',
-              target: society.Name || 'New Society',
+              type: society.type,
+              user: society.Creator_Name,
+              action: society.action,
+              target: society.Name,
               time: formatTimeAgo(society.CreatedAt),
               avatar: society.Creator_Image || 'https://cdn-icons-png.flaticon.com/512/4537/4537019.png'
             });
           });
         }
 
-        
+
         activities.sort((a, b) => new Date(b.time) - new Date(a.time));
         setActivities(activities.slice(0, 6));
       } catch (error) {
@@ -105,11 +103,11 @@ export default function ActivityFeed() {
 
   const formatTimeAgo = (dateString) => {
     if (!dateString) return 'Unknown time';
-    
+
     const now = new Date();
     const date = new Date(dateString);
     const diffInSeconds = Math.floor((now - date) / 1000);
-    
+
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
@@ -162,30 +160,35 @@ export default function ActivityFeed() {
     <div className={`bg-white rounded-2xl shadow-card p-6 mb-6 border border-gray-100 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold text-gray-900">Recent Activity</h3>
-        <Link to="/activity" className="text-sm text-primary-600 hover:text-primary-800 font-semibold transition-colors">
+        {/* <Link to="/activity" className="text-sm text-primary-600 hover:text-primary-800 font-semibold transition-colors">
           View All
-        </Link>
+        </Link> */}
       </div>
-      
+
       <div className="space-y-4">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200 group">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${getActivityColor(activity.type)}`}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getActivityIcon(activity.type)} />
-              </svg>
+        {activities.length === 0 ? (
+          <p className="text-sm text-gray-500">No recent activity.</p>
+        ) : (
+          activities.map((activity) => (
+            <div key={activity.id} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200 group">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${getActivityColor(activity.type)}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getActivityIcon(activity.type)} />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-900">
+                  <span className="font-semibold">{activity.user}</span> {activity.action}{' '}
+                  <span className="text-primary-600 hover:text-primary-800 cursor-pointer font-medium">
+                    {activity.target}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500 font-medium">{activity.time}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900">
-                <span className="font-semibold">{activity.user}</span> {activity.action}{' '}
-                <span className="text-primary-600 hover:text-primary-800 cursor-pointer font-medium">
-                  {activity.target}
-                </span>
-              </p>
-              <p className="text-xs text-gray-500 font-medium">{activity.time}</p>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
+
       </div>
     </div>
   );

@@ -14,10 +14,7 @@ export default function EventCalendar({ events = [] }) {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const response = await AxiosClient.get('/events/get_all_events', { 
-          params: { token } 
-        });
+        const response = await AxiosClient.get('/events');
 
         if (response.status === 200) {
           setAllEvents(response.data.data || []);

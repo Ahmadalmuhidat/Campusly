@@ -2,12 +2,14 @@ const User = require("../models/users");
 const Post = require("../models/posts");
 const Event = require("../models/events");
 const Society = require("../models/societies");
-const jsonWebToken = require("../helper/json_web_token");
+const Likes = require("../models/likes");
+const jsonWebToken = require("../helpers/jsonWebToken");
+const SocietyMember = require("../models/societyMembers");
 
 exports.searchUsers = async (req, res) => {
   try {
     const { query } = req.query;
-    
+
     if (!query || query.length < 2) {
       return res.status(400).json({ error_message: "Query must be at least 2 characters long" });
     }
@@ -31,7 +33,8 @@ exports.searchUsers = async (req, res) => {
 
 exports.getUserInformation = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.query.token)['id'];
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
     const user = await User.findOne({ ID: userId }, 'ID Name Email');
     if (!user) return res.status(404).json({ error_message: "User not found" });
     res.status(200).json({ data: user });
@@ -43,7 +46,8 @@ exports.getUserInformation = async (req, res) => {
 
 exports.getUserProfileInformation = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.query.token)['id'];
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const user = await User.findOne(
       { ID: userId },
@@ -74,14 +78,16 @@ exports.getUserProfileInformation = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
+    const { name, email, phone, bio, notifications, privacy } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
     const updateData = {
-      ...(req.body.name && { Name: req.body.name }),
-      ...(req.body.email && { Email: req.body.email.toLowerCase() }),
-      ...(req.body.phone && { Phone_Number: req.body.phone }),
-      ...(req.body.bio && { Bio: req.body.bio }),
-      ...(req.body.notifications && { Notifications: req.body.notifications }),
-      ...(req.body.privacy && { Privacy: req.body.privacy })
+      ...(name && { Name: name }),
+      ...(email && { Email: email.toLowerCase() }),
+      ...(phone && { Phone_Number: phone }),
+      ...(bio && { Bio: bio }),
+      ...(notifications && { Notifications: notifications }),
+      ...(privacy && { Privacy: privacy })
     };
 
     const result = await User.findOneAndUpdate(
@@ -102,16 +108,21 @@ exports.updateProfile = async (req, res) => {
 exports.getUserPublicProfile = async (req, res) => {
   try {
     const userId = req.query.user_id;
-    if (!userId) return res.status(400).json({ error_message: 'user_id is required' });
+    if (!userId) {
+      return res.status(400).json({ error_message: 'user_id is required' });
+    }
 
     const user = await User.findOne(
       { ID: userId },
       'ID Name Email Bio Photo CreatedAt'
     );
 
-    if (!user) return res.status(404).json({ error_message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error_message: 'User not found' });
+    }
 
-    const [postCount, eventCount, societyCount] = await Promise.all([
+    const [postCount, eventCount, societyCount, likesCount] = await Promise.all([
+      Likes.countDocuments({ User: userId }),
       Post.countDocuments({ User: userId }),
       Event.countDocuments({ User: userId }),
       Society.countDocuments({ User: userId })
@@ -122,7 +133,8 @@ exports.getUserPublicProfile = async (req, res) => {
         ...user.toObject(),
         Post_Count: postCount,
         Event_Count: eventCount,
-        Society_Count: societyCount
+        Society_Count: societyCount,
+        Likes_Count: likesCount
       }
     });
   } catch (err) {
@@ -133,13 +145,17 @@ exports.getUserPublicProfile = async (req, res) => {
 
 exports.getPostsByUserPublic = async (req, res) => {
   try {
-    const userId = req.query.user_id;
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
-    if (!userId) return res.status(400).json({ error_message: 'user_id is required' });
+    const { limit } = req.query;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userID = jsonWebToken.verifyToken(token)['id'];
 
-    const posts = await Post.find({ User: userId }, 'ID Content Image CreatedAt Likes')
+    if (!userID) {
+      return res.status(400).json({ error_message: 'user_id is required' });
+    };
+
+    const posts = await Post.find({ User: userID }, 'ID Content Image CreatedAt Likes')
       .sort({ CreatedAt: -1 })
-      .limit(limit)
+      .limit(Math.min(parseInt(limit || '20', 10), 50))
       .lean();
 
     res.status(200).json({ data: posts });
@@ -151,14 +167,17 @@ exports.getPostsByUserPublic = async (req, res) => {
 
 exports.getSocietiesByUserPublic = async (req, res) => {
   try {
-    const userId = req.query.user_id;
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
-    if (!userId) return res.status(400).json({ error_message: 'user_id is required' });
+    const { limit } = req.query;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userID = jsonWebToken.verifyToken(token)['id'];
 
-    const SocietyMember = require("../models/societyMembers");
-    const societies = await Society.find({ User: userId }, 'ID Name Category Description Image CreatedAt')
+    if (!userID) {
+      return res.status(400).json({ error_message: 'user_id is required' });
+    }
+
+    const societies = await Society.find({ User: userID }, 'ID Name Category Description Image CreatedAt')
       .sort({ CreatedAt: -1 })
-      .limit(limit)
+      .limit(Math.min(parseInt(limit || '20', 10), 50))
       .lean();
 
     const societiesWithCounts = await Promise.all(

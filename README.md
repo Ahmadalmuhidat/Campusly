@@ -88,7 +88,7 @@ npm install
 Create .env file
 ```
 PORT=4000
-JWT_SECRET=your_jwt_secret_here
+SECRET=your_jwt_secret_here
 MONGO_URI=mongodb://localhost:27017/zuj_societies
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
@@ -104,7 +104,7 @@ API available at: http://localhost:4000
 docker build -t zuj-societies-backend .
 docker run -d --name zuj-societies-backend \
   -p 4000:4000 \
-  -e JWT_SECRET=your_jwt_secret \
+  -e SECRET=your_jwt_secret \
   -e MONGO_URI=your_mongodb_uri \
   -e EMAIL_USER=your_email \
   -e EMAIL_PASS=your_password \

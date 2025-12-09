@@ -14,11 +14,9 @@ export function MembershipProvider({ children }) {
     if (memberships[societyId]) return;
 
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
       const [memberRes, adminRes] = await Promise.all([
-        AxiosClient.get('/societies/check_membership', { params: { token, society_id: societyId } }),
-        AxiosClient.get('/societies/check_admin', { params: { token, society_id: societyId } }),
+        AxiosClient.get('/societies/members/check', { params: { society_id: societyId } }),
+        AxiosClient.get('/societies/admin/check', { params: { society_id: societyId } }),
       ]);
 
       setMemberships((prev) => ({
@@ -37,15 +35,28 @@ export function MembershipProvider({ children }) {
     }
   };
 
+  // un-used yet
+  const clearMembership = async (societyId) => {
+    try {
+      await AxiosClient.post('/societies/leave', { society_id: societyId });
+      setMemberships((prev) => ({
+        ...prev,
+        [societyId]: { isMember: false, isAdmin: false },
+      }));
+    } catch (error) {
+      console.error('Error leaving society:', error);
+    }
+  };
+
   return (
-    <MembershipContext.Provider value={{ memberships, fetchMembership }}>
+    <MembershipContext.Provider value={{ memberships, fetchMembership, clearMembership }}>
       {children}
     </MembershipContext.Provider>
   );
 }
 
 export const useSocietyMembership = (societyId) => {
-  const { memberships, fetchMembership } = useContext(MembershipContext);
+  const { memberships, fetchMembership, clearMembership } = useContext(MembershipContext);
   const membership = memberships[societyId] || { isMember: false, isAdmin: false };
 
   useEffect(() => {

@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AxiosClient from '../config/axios';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,9 +22,7 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      const response = await AxiosClient.get('/users/get_user_info', {
-        params: { token },
-      });
+      const response = await AxiosClient.get('/users/info');
 
       if (response.status === 200) {
         setUser(response.data.data);

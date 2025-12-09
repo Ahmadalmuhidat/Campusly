@@ -14,8 +14,7 @@ export default function ChangeRole({
     if (!selectedMember) return;
 
     try {
-      const response = await AxiosClient.put("/societies/update_member_role", {
-        token: localStorage.getItem("token") || sessionStorage.getItem("token"),
+      const response = await AxiosClient.put("/societies/members/roles", {
         member: selectedMember.ID,
         role: newRole,
         society_id: society_id

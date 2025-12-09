@@ -3,8 +3,6 @@ import React from 'react';
 export default function Notifications({ settings, handleNotificationChange }) {
   const notificationOptions = [
     { key: 'newMemberNotifications', label: 'New member notifications', description: 'Get notified when someone joins the society' },
-    { key: 'eventReminders', label: 'Event reminders', description: 'Send reminders about upcoming events' },
-    { key: 'weeklyDigest', label: 'Weekly digest', description: 'Send a weekly summary of society activity' },
     { key: 'emailNotifications', label: 'Email notifications', description: 'Send notifications via email' }
   ];
 

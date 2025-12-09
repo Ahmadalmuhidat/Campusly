@@ -16,10 +16,7 @@ export default function HomeContainer() {
   const getPosts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await AxiosClient.get("/posts/get_all_posts", {
-        params: { token },
-      });
+      const response = await AxiosClient.get("/posts");
 
       if (response.status === 200) {
         setPosts(response.data.data);

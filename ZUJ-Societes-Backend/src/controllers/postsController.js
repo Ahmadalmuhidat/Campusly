@@ -4,27 +4,20 @@ const User = require("../models/users");
 const Society = require("../models/societies");
 const Comment = require('../models/comments');
 const SocietyMember = require("../models/societyMembers");
-const { v4: uuidv4 } = require("uuid");
-const jsonWebToken = require("../helper/json_web_token");
-const { sendNotificationToUsers } = require('./notifications');
+const jsonWebToken = require("../helpers/jsonWebToken");
+const serverSentEvents = require('../helpers/serverSentEvents');
 
 exports.getAllPosts = async (req, res) => {
   try {
-    const token = req.query.token;
-
-    let userId;
-    try {
-      userId = jsonWebToken.verify_token(token)['id'];
-    } catch {
-      return res.status(401).json({ error_message: "Invalid token" });
-    }
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const societyMemberships = await SocietyMember.find({ User: userId }).select("Society");
-    const societyIds = societyMemberships.map(m => m.Society);
+    const societyIds = societyMemberships.map(member => member.Society);
 
     const posts = await Post.find({ Society: { $in: societyIds } }).sort({ CreatedAt: -1 }).lean();
-    const userIds = [...new Set(posts.map(p => p.User.toString()))];
-    const postIds = posts.map(p => p._id.toString());
+    const userIds = [...new Set(posts.map(post => post.User.toString()))];
+    const postIds = posts.map(post => post._id.toString());
 
     const [users, societies, likes] = await Promise.all([
       User.find({ ID: { $in: userIds } }).select("ID Name Photo").lean(),
@@ -33,9 +26,9 @@ exports.getAllPosts = async (req, res) => {
     ]);
 
     const postsWithDetails = posts.map(post => {
-      const postUser = users.find(u => u.ID === post.User);
-      const postSociety = societies.find(s => s.ID === post.Society);
-      const isLiked = likes.some(l => l.Post.toString() === post._id.toString());
+      const postUser = users.find(user => user.ID === post.User);
+      const postSociety = societies.find(society => society.ID === post.Society);
+      const isLiked = likes.some(like => like.Post.toString() === post._id.toString());
 
       const likeCount = post.LikesCount || 0;
 
@@ -46,10 +39,11 @@ exports.getAllPosts = async (req, res) => {
         Image: post.Image || "",
         Comments: post.CommentsCount || 0,
         Society_Name: postSociety?.Name || null,
+        CreatedAt: post.CreatedAt,
         User: post.User,
         User_Name: postUser?.Name || null,
         User_Image: postUser?.Photo || null,
-        Is_Liked: isLiked ? 1 : 0
+        IsLiked: isLiked ? 1 : 0
       };
     });
 
@@ -62,10 +56,9 @@ exports.getAllPosts = async (req, res) => {
 
 exports.createPost = async (req, res) => {
   try {
-    const { society_id, content, image, token } = req.body;
-
-    const decoded = jsonWebToken.verify_token(token);
-    const userId = decoded.id;
+    const { society_id, content, image } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     const society = await Society.findOne({ ID: society_id });
     if (!society) {
@@ -86,7 +79,6 @@ exports.createPost = async (req, res) => {
     }
 
     const post = new Post({
-      ID: uuidv4(),
       Content: content,
       Image: image,
       User: userId,
@@ -97,29 +89,6 @@ exports.createPost = async (req, res) => {
     });
 
     await post.save();
-
-    try {
-      const societyMembers = await SocietyMember.find({ Society: society_id }).select('User');
-      const memberUserIds = societyMembers.map(member => member.User.toString());
-      const user = await User.findById(userId).select('Name Photo');
-      
-      const notification = {
-        type: 'post',
-        title: 'New Post',
-        message: `${user?.Name || 'Someone'} posted in ${society.Name}`,
-        data: {
-          postId: post.ID,
-          societyId: society_id,
-          userId: userId
-        },
-        time: new Date().toISOString()
-      };
-
-      sendNotificationToUsers(memberUserIds, notification);
-    } catch (notificationError) {
-      console.error('Failed to send post notification:', notificationError);
-    }
-
     res.status(201).json({ message: 'Post created successfully', post });
   } catch (error) {
     console.error(error);
@@ -130,22 +99,8 @@ exports.createPost = async (req, res) => {
 exports.deletePost = async (req, res) => {
   try {
     const { post_id } = req.query;
-    let token = req.query.token;
-    if (!token && req.headers.authorization) {
-      token = req.headers.authorization.replace('Bearer ', '');
-    }
-
-    if (!token) {
-      return res.status(401).json({ error_message: "Token is required" });
-    }
-
-    let userId;
-    try {
-      const userData = jsonWebToken.verify_token(token);
-      userId = userData['id'];
-    } catch (error) {
-      return res.status(401).json({ error_message: "Invalid or expired token" });
-    }
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
     if (!userId) {
       return res.status(401).json({ error_message: "Invalid token payload" });
@@ -170,13 +125,15 @@ exports.deletePost = async (req, res) => {
 
 exports.getPostsBySociety = async (req, res) => {
   try {
-    const token = req.query.token || req.headers.authorization?.split(' ')[1];
-    const userId = jsonWebToken.verify_token(token).id;
+    const { society_id } = req.query;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
-    const societyId = req.query.society_id;
-    if (!societyId) return res.status(400).json({ error_message: "Missing society_id" });
+    if (!society_id) {
+      return res.status(400).json({ error_message: "Missing society_id" });
+    }
 
-    const posts = await Post.find({ Society: societyId }).sort({ CreatedAt: -1 });
+    const posts = await Post.find({ Society: society_id }).sort({ CreatedAt: -1 });
     const userIds = [...new Set(posts.map(p => p.User.toString()))];
     const users = await User.find({ ID: { $in: userIds } }).select("ID Name Photo").lean();
     const postIds = posts.map(p => p._id.toString());
@@ -196,10 +153,11 @@ exports.getPostsBySociety = async (req, res) => {
         Likes: likeCount,
         Image: post.Image || "",
         Comments: post.CommentsCount || 0,
+        CreatedAt: post.CreatedAt,
         User: post.User,
         User_Name: postUser?.Name || null,
         User_Image: postUser?.Photo || null,
-        Is_Liked: isLiked
+        IsLiked: isLiked
       };
     });
 
@@ -212,10 +170,11 @@ exports.getPostsBySociety = async (req, res) => {
 
 exports.unlikePost = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const postId = req.body.post_id;
+    const { post_id } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
-    const post = await Post.findOne({ ID: postId });
+    const post = await Post.findOne({ ID: post_id });
     if (!post) {
       return res.status(404).json({ error_message: "Post not found" });
     }
@@ -228,7 +187,7 @@ exports.unlikePost = async (req, res) => {
     await Like.deleteOne({ _id: existingLike._id });
 
     await Post.updateOne(
-      { ID: postId },
+      { ID: post_id },
       { $inc: { LikesCount: -1 } }
     );
 
@@ -241,10 +200,11 @@ exports.unlikePost = async (req, res) => {
 
 exports.likePost = async (req, res) => {
   try {
-    const userId = jsonWebToken.verify_token(req.body.token)['id'];
-    const postId = req.body.post_id;
+    const { post_id } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = jsonWebToken.verifyToken(token)['id'];
 
-    const post = await Post.findOne({ ID: postId });
+    const post = await Post.findOne({ ID: post_id });
     if (!post) {
       return res.status(404).json({ error_message: "Post not found" });
     }
@@ -252,15 +212,14 @@ exports.likePost = async (req, res) => {
     const existingLike = await Like.findOne({ User: userId, Post: post._id.toString() });
     if (existingLike) return res.status(400).json({ error_message: "User already liked this post" });
 
-    const newLike = new Like({ ID: uuidv4(), User: userId, Post: post._id.toString() });
+    const newLike = new Like({ User: userId, Post: post._id.toString() });
     await newLike.save();
 
-    await Post.updateOne({ ID: postId }, { $inc: { LikesCount: 1 } });
+    await Post.updateOne({ ID: post_id }, { $inc: { LikesCount: 1 } });
 
     try {
       if (post.User.toString() !== userId) {
         const user = await User.findOne({ ID: userId }).select('Name Photo');
-        const postAuthor = await User.findOne({ ID: post.User }).select('Name');
         
         const notification = {
           type: 'like',
@@ -268,13 +227,13 @@ exports.likePost = async (req, res) => {
           message: `${user?.Name || 'Someone'} liked your post`,
           data: {
             likeId: newLike.ID,
-            postId: postId,
+            postId: post_id,
             userId: userId
           },
           time: new Date().toISOString()
         };
 
-        await sendNotificationToUsers([post.User.toString()], notification);
+        await serverSentEvents.sendToUser([post.User.toString()], notification);
       }
     } catch (notificationError) {
       console.error('Failed to send like notification:', notificationError);
@@ -289,9 +248,9 @@ exports.likePost = async (req, res) => {
 
 exports.getCommentsForPost = async (req, res) => {
   try {
-    const postId = req.query.post_id;
+    const { post_id } = req.body;
 
-    const comments = await Comment.find({ Post: postId })
+    const comments = await Comment.find({ Post: post_id })
       .sort({ CreatedAt: -1 })
       .lean();
 

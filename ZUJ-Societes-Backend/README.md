@@ -44,7 +44,7 @@ A comprehensive Node.js backend API for managing university societies, events, p
    Create a `.env` file in the root directory:
    ```env
    PORT=4000
-   JWT_SECRET=your_jwt_secret_here
+   SECRET=your_jwt_secret_here
    MONGO_URI=mongodb://localhost:27017/zuj_societies
    EMAIL_USER=your_email@gmail.com
    EMAIL_PASS=your_app_password
@@ -66,7 +66,7 @@ A comprehensive Node.js backend API for managing university societies, events, p
    ```bash
    docker run -d --name zuj-societies-backend \
      -p 4000:4000 \
-     -e JWT_SECRET=your_jwt_secret \
+     -e SECRET=your_jwt_secret \
      -e MONGO_URI=your_mongodb_uri \
      -e EMAIL_USER=your_email \
      -e EMAIL_PASS=your_password \
@@ -89,7 +89,7 @@ src/
 │   ├── support.js          # Support controller
 │   └── user.js             # User controller
 ├── helper/
-│   ├── json_web_token.js   # JWT helper functions
+│   ├── jsonWebToken.js   # JWT helper functions
 │   ├── passwords.js        # Password utilities
 ├── middlewares/
 │   └── auth.js             # Authentication middleware
@@ -139,7 +139,7 @@ The project includes a Jenkinsfile for automated deployment:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `PORT` | Server port | No (default: 4000) |
-| `JWT_SECRET` | JWT signing secret | Yes |
+| `SECRET` | JWT signing secret | Yes |
 | `MONGO_URI` | MongoDB connection string | Yes |
 | `EMAIL_USER` | Email service username | Yes |
 | `EMAIL_PASS` | Email service password | Yes |

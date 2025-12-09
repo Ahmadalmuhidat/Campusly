@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// const BASE_URL = 'http://34.29.161.87:4000/';
-const BASE_URL = 'http://localhost:4000/';
+const BASE_URL = process.env.REACT_APP_API_URL;
 
 const AxiosClient = axios.create({
   baseURL: BASE_URL,
@@ -17,7 +16,7 @@ AxiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem("token");
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers['authorization'] = `Bearer ${token}`;
     }
     return config;
   },

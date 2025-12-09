@@ -23,8 +23,7 @@ export default function Contact() {
     setIsSubmitting(true);
 
     try {
-      const response = await AxiosClient.post('/support/create_ticket', {
-        token: localStorage.getItem("token") || sessionStorage.getItem("token"),
+      const response = await AxiosClient.post('/support', {
         category: contactForm.category,
         subject: contactForm.subject,
         content: contactForm.message
