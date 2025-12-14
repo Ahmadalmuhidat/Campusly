@@ -2,7 +2,7 @@ const User = require('../models/users');
 const Post = require('../models/posts');
 const Event = require('../models/events');
 const Society = require('../models/societies');
-const jsonWebToken = require("../helpers/jsonWebToken");
+const JsonWebToken = require("../helpers/jsonWebToken");
 
 exports.getPlatformAnalytics = async (req, res) => {
   try {
@@ -18,7 +18,6 @@ exports.getPlatformAnalytics = async (req, res) => {
       Event.countDocuments()
     ]);
 
-    // Count total comments from all posts
     const posts = await Post.find({}).select('CommentsCount').lean();
     const totalComments = posts.reduce((sum, post) => sum + (post.CommentsCount || 0), 0);
 
@@ -60,7 +59,7 @@ exports.getPlatformAnalytics = async (req, res) => {
 exports.getTrendingPosts = async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
     const limit = parseInt(req.query.limit) || 10;
     const days = parseInt(req.query.days) || 7;
 
@@ -112,7 +111,7 @@ exports.getTrendingPosts = async (req, res) => {
 exports.getActivityFeed = async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
     const limit = parseInt(req.query.limit) || 20;
     const activities = [];
 

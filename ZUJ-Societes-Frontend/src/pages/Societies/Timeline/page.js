@@ -7,7 +7,7 @@ import Timeline from './Components/MainContent';
 
 export default function SocietyDetail() {
   const { id } = useParams();
-  const { isMember, isAdmin } = useSocietyMembership(id);
+  const { isMember, canPost, canCreateEvents } = useSocietyMembership(id);
   const [showModal, setShowModal] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImage, setNewPostImage] = useState('');
@@ -63,22 +63,24 @@ export default function SocietyDetail() {
         societyId={id || '1'}
         showJoinButton={!isMember}
         actionButton={
-          isMember && isAdmin && (
-            <div className="flex gap-3">
+          <div className="flex gap-3">
+            {canCreateEvents() && (
               <Link
                 to={`/societies/${id}/events/new`}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
               >
                 Create Event
               </Link>
+            )}
+            {canPost() && (
               <button
                 onClick={() => setShowModal(true)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
                 Create Post
               </button>
-            </div>
-          )
+            )}
+          </div>
         }
       />
 

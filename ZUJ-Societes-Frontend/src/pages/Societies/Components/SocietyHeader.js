@@ -55,8 +55,12 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
     try {
       const response = await AxiosClient.post("/societies/requests", { society_id: societyId });
       if (response.status === 201) {
-        joinStatusCache.set(societyId, true);
-        setJoinRequested(true);
+        if (response.data.data?.auto_approved) {
+          window.location.reload();
+        } else {
+          joinStatusCache.set(societyId, true);
+          setJoinRequested(true);
+        }
       }
     } catch (error) {
       console.error('Failed to request join:', error);
@@ -172,8 +176,8 @@ export default function SocietyHeader({ societyId, showJoinButton = false, actio
                     onClick={handleJoinSociety}
                     disabled={joinRequested}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${joinRequested
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
                       }`}
                   >
                     <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

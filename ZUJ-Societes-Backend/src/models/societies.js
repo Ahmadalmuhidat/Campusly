@@ -46,19 +46,18 @@ const societySchema = new mongoose.Schema({
   Description: String,
   User: String,
   Category: String,
-  Visibility: String,
   Image: String,
   CreatedAt: { type: Date, default: Date.now },
 
   Privacy: {
     visibility: {
       type: String,
-      enum: ['public', 'private', 'invite-only'],
+      enum: ['public', 'private'],
       default: 'public'
     },
-    joinApproval: { type: Boolean, default: true },  // not user yet
-    memberListVisible: { type: Boolean, default: true }, // not user yet
-    eventsVisible: { type: Boolean, default: true }  // not user yet
+    joinApproval: { type: Boolean, default: true },
+    memberListVisible: { type: Boolean, default: true }, // Hidden from UI, enforced in backend
+    eventsVisible: { type: Boolean, default: true }
   },
 
   Permissions: {

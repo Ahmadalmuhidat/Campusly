@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const SECRET = process.env.SECRET;
-// const SECRET = "123_secret_key";
 
 if (!SECRET) {
   throw new Error("SECRET is not set in environment variables.");

@@ -11,6 +11,7 @@ import Login from './pages/Auth/Login/page';
 import Signup from './pages/Auth/Register/page';
 import About from './pages/About/page';
 import Account from './pages/Account/page';
+import UserSettings from './pages/Account/Settings/page';
 import PublicProfile from './pages/Account/PublicProfile/page';
 import Events from './pages/Events/page';
 import Support from './pages/Support/page';
@@ -67,6 +68,7 @@ function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/account" element={<Account />} />
+                        <Route path="/account/settings" element={<UserSettings />} />
                         <Route path="/users/:id" element={<PublicProfile />} />
                         <Route path="/events" element={<Events />} />
                         <Route path="/events/:id" element={<EventDetailsPage />} />

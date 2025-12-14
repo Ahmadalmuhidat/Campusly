@@ -3,20 +3,19 @@ import React from 'react';
 export default function Privacy({ settings, handlePrivacyChange }) {
   const visibilityOptions = [
     { value: 'public', label: 'Public', description: 'Anyone can find and view this society' },
-    { value: 'private', label: 'Private', description: 'Only members can view this society' },
-    { value: 'invite-only', label: 'Invite Only', description: 'Only invited users can join' }
+    { value: 'private', label: 'Private', description: 'Only members can view this society' }
   ];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Privacy Settings</h3>
-        <div className="flex items-center text-sm text-gray-500">
+        {/* <div className="flex items-center text-sm text-gray-500">
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Auto-saved
-        </div>
+        </div> */}
       </div>
 
       <div className="space-y-6">
@@ -50,12 +49,6 @@ export default function Privacy({ settings, handlePrivacyChange }) {
             description="New join requests must be approved by admins"
             checked={settings.privacy.joinApproval}
             onChange={(checked) => handlePrivacyChange('joinApproval', checked)}
-          />
-          <PrivacyToggle
-            label="Show member list publicly"
-            description="Allow non-members to see the member list"
-            checked={settings.privacy.memberListVisible}
-            onChange={(checked) => handlePrivacyChange('memberListVisible', checked)}
           />
           <PrivacyToggle
             label="Show events publicly"

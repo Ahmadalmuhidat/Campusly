@@ -59,11 +59,11 @@ const userSchema = new mongoose.Schema({
     emailNotifications: {
       type: Boolean,
       default: true
-    }, // not used yet
+    },
     societyUpdates: {
       type: Boolean,
       default: true
-    }, // not used yet
+    },
   },
 
   Privacy: {
@@ -71,15 +71,15 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ["public", "members", "private"],
       default: "public"
-    }, // not used yet
+    },
     showEmail: {
       type: Boolean,
       default: false
-    }, // not used yet
+    },
     showPhone: {
       type: Boolean,
       default: false
-    }, // not used yet
+    },
   },
 });
 

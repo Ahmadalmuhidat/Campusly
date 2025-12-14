@@ -2,9 +2,7 @@ const User = require("../models/users");
 const Post = require("../models/posts");
 const Event = require("../models/events");
 const Society = require("../models/societies");
-// const Likes = require("../models/likes");
-const jsonWebToken = require("../helpers/jsonWebToken");
-// const SocietyMember = require("../models/societyMembers");
+const JsonWebToken = require("../helpers/jsonWebToken");
 
 exports.searchUsers = async (req, res) => {
   try {
@@ -34,7 +32,7 @@ exports.searchUsers = async (req, res) => {
 exports.getUserInformation = async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
     const user = await User.findOne({ ID: userId }, 'ID Name Email');
     if (!user) return res.status(404).json({ error_message: "User not found." });
     res.status(200).json({ data: user });
@@ -47,7 +45,7 @@ exports.getUserInformation = async (req, res) => {
 exports.getUserProfileInformation = async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const user = await User.findOne(
       { ID: userId },
@@ -80,7 +78,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const { name, email, phone, bio, notifications, privacy } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
     const updateData = {
       ...(name && { Name: name }),
       ...(email && { Email: email.toLowerCase() }),
@@ -112,16 +110,49 @@ exports.getUserPublicProfile = async (req, res) => {
       return res.status(400).json({ error_message: 'user_id is required' });
     }
 
+    const token = req.headers['authorization']?.split(' ')[1];
+    const viewerId = token ? JsonWebToken.verifyToken(token)['id'] : null;
+    const isOwnProfile = viewerId === userId;
+
     const user = await User.findOne(
       { ID: userId },
-      'ID Name Email Bio Photo CreatedAt'
+      'ID Name Email Phone_Number Bio Photo CreatedAt Privacy'
     );
 
     if (!user) {
       return res.status(404).json({ error_message: 'User not found' });
     }
 
-    // Count likes from all posts by this user
+    // Check profile visibility
+    const profileVisibility = user.Privacy?.profileVisibility || 'public';
+
+    if (!isOwnProfile && profileVisibility === 'private') {
+      return res.status(403).json({ error_message: 'This profile is private' });
+    }
+
+    if (!isOwnProfile && profileVisibility === 'members') {
+      // Check if viewer is a member of any same society
+      if (!viewerId) {
+        return res.status(403).json({ error_message: 'This profile is only visible to society members' });
+      }
+
+      const viewerSocieties = await Society.find({
+        'Members.User': viewerId
+      }).select('ID').lean();
+
+      const userSocieties = await Society.find({
+        'Members.User': userId
+      }).select('ID').lean();
+
+      const viewerSocietyIds = viewerSocieties.map(s => s.ID);
+      const userSocietyIds = userSocieties.map(s => s.ID);
+      const hasCommonSociety = viewerSocietyIds.some(id => userSocietyIds.includes(id));
+
+      if (!hasCommonSociety) {
+        return res.status(403).json({ error_message: 'This profile is only visible to society members' });
+      }
+    }
+
     const userPosts = await Post.find({ User: userId }).select('Likes').lean();
     const likesCount = userPosts.reduce((sum, post) => sum + (post.Likes?.length || 0), 0);
 
@@ -131,15 +162,31 @@ exports.getUserPublicProfile = async (req, res) => {
       Society.countDocuments({ User: userId })
     ]);
 
-    res.status(200).json({
-      data: {
-        ...user.toObject(),
-        Post_Count: postCount,
-        Event_Count: eventCount,
-        Society_Count: societyCount,
-        Likes_Count: likesCount
-      }
-    });
+    // Build response based on privacy settings
+    const showEmail = isOwnProfile || (user.Privacy?.showEmail ?? false);
+    const showPhone = isOwnProfile || (user.Privacy?.showPhone ?? false);
+
+    const profileData = {
+      ID: user.ID,
+      Name: user.Name,
+      Bio: user.Bio,
+      Photo: user.Photo,
+      CreatedAt: user.CreatedAt,
+      Post_Count: postCount,
+      Event_Count: eventCount,
+      Society_Count: societyCount,
+      Likes_Count: likesCount
+    };
+
+    if (showEmail) {
+      profileData.Email = user.Email;
+    }
+
+    if (showPhone) {
+      profileData.Phone_Number = user.Phone_Number;
+    }
+
+    res.status(200).json({ data: profileData });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error_message: 'Failed to get public profile' });
@@ -150,7 +197,7 @@ exports.getPostsByUserPublic = async (req, res) => {
   try {
     const { limit } = req.query;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userID = jsonWebToken.verifyToken(token)['id'];
+    const userID = JsonWebToken.verifyToken(token)['id'];
 
     if (!userID) {
       return res.status(400).json({ error_message: 'user_id is required.' });
@@ -172,7 +219,7 @@ exports.getSocietiesByUserPublic = async (req, res) => {
   try {
     const { limit } = req.query;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userID = jsonWebToken.verifyToken(token)['id'];
+    const userID = JsonWebToken.verifyToken(token)['id'];
 
     if (!userID) {
       return res.status(400).json({ error_message: 'user_id is required.' });
@@ -192,5 +239,99 @@ exports.getSocietiesByUserPublic = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error_message: 'Failed to get user societies.' });
+  }
+};
+
+exports.getEventsAttendedByUser = async (req, res) => {
+  try {
+    const { limit } = req.query;
+
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userID = JsonWebToken.verifyToken(token)['id'];
+
+    const events = await Event.find({
+      "Attendance.User": userID,
+      "Attendance.Status": "attending"
+    }).limit(parseInt(limit) || 10).lean();
+
+    if (events.length === 0) {
+      return res.status(200).json({ data: [] });
+    }
+
+    const societyIds = [...new Set(events.map(e => e.Society).filter(Boolean))];
+    const societies = await Society.find({
+      ID: { $in: societyIds }
+    }).lean();
+
+    const societyMap = {};
+    societies.forEach(society => {
+      societyMap[society.ID] = society;
+    });
+
+    const result = events.map(event => ({
+      ...event,
+      Society_Name: societyMap[event.Society]?.Name || null,
+      Society_Image: societyMap[event.Society]?.Image || null
+    }));
+
+    res.status(200).json({ data: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error_message: "Failed to get events attended by user." });
+  }
+};
+
+exports.getUserEventStatus = async (req, res) => {
+  try {
+    const { event_id } = req.query;
+
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = JsonWebToken.verifyToken(token)['id'];
+
+    if (!event_id) {
+      return res.status(400).json({ error_message: "Event ID is required." });
+    }
+
+    const event = await Event.findOne({ ID: event_id });
+    const attendance = event?.Attendance.find(a => a.User === userId);
+
+    res.status(200).json({
+      data: {
+        attendance: attendance?.Status || null,
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error_message: "Failed to get user event status." });
+  }
+};
+
+exports.getSocietiesByUser = async (req, res) => {
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = JsonWebToken.verifyToken(token)['id'];
+    const createdSocieties = await Society.find({ User: userId });
+    const allSocieties = await Society.find({});
+    const memberSocieties = allSocieties.filter(s =>
+      s.Members?.some(m => m.User === userId && s.User !== userId)
+    );
+
+    const societiesWithCounts = [...createdSocieties, ...memberSocieties].map(society => ({
+      ...society.toObject(),
+      Member_Count: society.Members.length
+    }));
+
+    const combined = [
+      ...societiesWithCounts.filter(s => createdSocieties.some(cs => cs.ID === s.ID)).map(s => ({ ...s, Role: 'creator' })),
+      ...societiesWithCounts.filter(s => memberSocieties.some(ms => ms.ID === s.ID)).map(s => {
+        const membership = s.Members.find(m => m.User === userId);
+        return { ...s, Role: membership?.Role || null };
+      })
+    ];
+
+    res.status(200).json({ data: combined });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error_message: "Failed to get societies for the user." });
   }
 };

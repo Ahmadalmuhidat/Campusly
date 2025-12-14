@@ -1,13 +1,13 @@
 const Post = require("../models/posts");
 const User = require("../models/users");
-const jsonWebToken = require("../helpers/jsonWebToken");
+const JsonWebToken = require("../helpers/jsonWebToken");
 const serverSentEvents = require('../helpers/serverSentEvents');
 
 exports.createComment = async (req, res) => {
   try {
     const { content, post_id } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const { v4: uuidv4 } = require('uuid');
     const newComment = {
@@ -63,7 +63,7 @@ exports.deleteComment = async (req, res) => {
   try {
     const { comment_id } = req.query;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const post = await Post.findOne({ "Comments.ID": comment_id });
     if (!post) {

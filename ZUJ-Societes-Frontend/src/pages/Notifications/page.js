@@ -226,7 +226,6 @@ export default function NotificationsPage() {
                 {notification.Type === 'invitation' ? (
                   <div className="p-6">
                     {(() => {
-                      // Check both local state and notification data for status
                       const localStatus = invitationResponses[notification.Data.inviteId];
                       const dataStatus = notification.Data?.status;
                       const status = localStatus || dataStatus;

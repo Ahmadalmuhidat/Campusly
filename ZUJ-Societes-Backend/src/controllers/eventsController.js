@@ -1,7 +1,7 @@
 const Event = require("../models/events");
 const User = require("../models/users");
 const Society = require("../models/societies");
-const jsonWebToken = require("../helpers/jsonWebToken");
+const JsonWebToken = require("../helpers/jsonWebToken");
 const mailer = require("../services/mailer");
 const serverSentEvents = require('../helpers/serverSentEvents');
 
@@ -12,7 +12,7 @@ exports.getAllEvents = async (req, res) => {
 
     const events = await Event.find(
       {
-        CreatedAt: {
+        Date: {
           $gte: today
         }
       },
@@ -57,7 +57,7 @@ exports.createEvent = async (req, res) => {
       category
     } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
     const society = await Society.findOne({ ID: society_id });
 
     if (!society) {
@@ -128,7 +128,7 @@ exports.deleteEvent = async (req, res) => {
   try {
     const { event_id } = req.query;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required." });
@@ -169,41 +169,6 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-exports.getEventsBySociety = async (req, res) => {
-  try {
-    const { society_id } = req.query;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const events = await Event.find(
-      {
-        Society: society_id,
-        CreatedAt: { $gte: today }
-      }
-    ).lean();
-
-    const userIds = events.map(e => e.User);
-    const users = await User.find({ ID: { $in: userIds } })
-      .select("ID Name")
-      .lean();
-
-    const result = events.map(event => {
-      const organizer = users.find(u => u.ID === event.User);
-      return {
-        ...event,
-        Organizer: organizer?.Name || null
-      };
-    });
-
-    res.status(200).json({ data: result });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to get Events for this society." });
-  }
-};
-
 exports.getEventStats = async (req, res) => {
   try {
     const { event_id } = req.query;
@@ -236,7 +201,7 @@ exports.toggleEventAttendance = async (req, res) => {
   try {
     const { event_id, status } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     if (!event_id || !status) {
       return res.status(400).json({ error_message: "Event ID and status are required." });
@@ -272,7 +237,7 @@ exports.recordEventShare = async (req, res) => {
   try {
     const { event_id } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     if (!event_id) {
       return res.status(400).json({ error_message: "Event ID is required." });
@@ -288,69 +253,5 @@ exports.recordEventShare = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error_message: "Failed to record share" });
-  }
-};
-
-exports.getUserEventStatus = async (req, res) => {
-  try {
-    const { event_id } = req.query;
-
-    const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
-
-    if (!event_id) {
-      return res.status(400).json({ error_message: "Event ID is required." });
-    }
-
-    const event = await Event.findOne({ ID: event_id });
-    const attendance = event?.Attendance.find(a => a.User === userId);
-
-    res.status(200).json({
-      data: {
-        attendance: attendance?.Status || null,
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to get user event status." });
-  }
-};
-
-exports.getEventsAttendedByUser = async (req, res) => {
-  try {
-    const { limit } = req.query;
-
-    const token = req.headers['authorization']?.split(' ')[1];
-    const userID = jsonWebToken.verifyToken(token)['id'];
-
-    const events = await Event.find({
-      "Attendance.User": userID,
-      "Attendance.Status": "attending"
-    }).limit(parseInt(limit) || 10).lean();
-
-    if (events.length === 0) {
-      return res.status(200).json({ data: [] });
-    }
-
-    const societyIds = [...new Set(events.map(e => e.Society).filter(Boolean))];
-    const societies = await Society.find({
-      ID: { $in: societyIds }
-    }).lean();
-
-    const societyMap = {};
-    societies.forEach(society => {
-      societyMap[society.ID] = society;
-    });
-
-    const result = events.map(event => ({
-      ...event,
-      Society_Name: societyMap[event.Society]?.Name || null,
-      Society_Image: societyMap[event.Society]?.Image || null
-    }));
-
-    res.status(200).json({ data: result });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to get events attended by user." });
   }
 };

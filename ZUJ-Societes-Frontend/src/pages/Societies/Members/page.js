@@ -10,7 +10,7 @@ import { useSocietyMembership } from '../../../context/MembershipContext';
 
 export default function SocietyMembers() {
   const { id } = useParams();
-  const { isAdmin, isModerator } = useSocietyMembership(id);
+  const { isAdmin, isModerator, canInvite } = useSocietyMembership(id);
   const [members, setMembers] = useState([]);
   const [mounted, setMounted] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -33,7 +33,7 @@ export default function SocietyMembers() {
   };
 
   const handleInviteSent = () => {
-    
+
     getAllSocietyMembers();
   };
 
@@ -50,17 +50,19 @@ export default function SocietyMembers() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Members</h2>
-            {(isAdmin || isModerator) && (
+            {canInvite() && (
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowSentInvitations(true)}
-                  className="bg-gray-600 text-white px-4 py-2 rounded-xl hover:bg-gray-700 transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                  Sent Invitations
-                </button>
+                {(isAdmin || isModerator) && (
+                  <button
+                    onClick={() => setShowSentInvitations(true)}
+                    className="bg-gray-600 text-white px-4 py-2 rounded-xl hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    Sent Invitations
+                  </button>
+                )}
                 <button
                   onClick={() => setShowInviteModal(true)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -76,18 +78,19 @@ export default function SocietyMembers() {
           <MembersStats members={members} />
           <MembersList id={id} members={members} setMembers={setMembers} />
         </div>
-      </main>
+      </main >
 
       {/* Invite Modal */}
-      <InviteModal
+      < InviteModal
         isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
+        onClose={() => setShowInviteModal(false)
+        }
         societyId={id}
         onInviteSent={handleInviteSent}
       />
 
       {/* Sent Invitations Modal */}
-      <SentInvitations
+      < SentInvitations
         isOpen={showSentInvitations}
         onClose={() => setShowSentInvitations(false)}
         societyId={id}

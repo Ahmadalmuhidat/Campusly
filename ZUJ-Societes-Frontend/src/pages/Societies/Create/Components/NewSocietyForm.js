@@ -75,7 +75,7 @@ export default function NewSocietyForm() {
 
   const validateStep = (step) => {
     const newErrors = {};
-    
+
     if (step === 1) {
       if (!formData.name.trim()) newErrors.name = 'Society name is required';
       if (formData.name.length < 3) newErrors.name = 'Society name must be at least 3 characters';
@@ -83,7 +83,7 @@ export default function NewSocietyForm() {
       if (formData.description.length < 20) newErrors.description = 'Description must be at least 20 characters';
       if (!formData.category) newErrors.category = 'Category is required';
     }
-    
+
     if (step === 2) {
       if (formData.contactEmail && !/\S+@\S+\.\S+/.test(formData.contactEmail)) {
         newErrors.contactEmail = 'Please enter a valid email address';
@@ -92,7 +92,7 @@ export default function NewSocietyForm() {
         newErrors.website = 'Please enter a valid website URL';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -116,7 +116,7 @@ export default function NewSocietyForm() {
   const createNewSociety = async (e) => {
     e.preventDefault();
 
-    
+
     if (currentStep !== 3) {
       return;
     }
@@ -164,11 +164,10 @@ export default function NewSocietyForm() {
         <div className="flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                currentStep >= step.number
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.number
                   ? 'bg-primary-600 border-primary-600 text-white'
                   : 'border-gray-300 text-gray-400'
-              }`}>
+                }`}>
                 {currentStep > step.number ? (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -184,9 +183,8 @@ export default function NewSocietyForm() {
                 <p className="text-xs text-gray-500">{step.description}</p>
               </div>
               {index < steps.length - 1 && (
-                <div className={`hidden sm:block w-16 h-0.5 mx-4 ${
-                  currentStep > step.number ? 'bg-primary-600' : 'bg-gray-300'
-                }`} />
+                <div className={`hidden sm:block w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-primary-600' : 'bg-gray-300'
+                  }`} />
               )}
             </div>
           ))}
@@ -216,9 +214,8 @@ export default function NewSocietyForm() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                    errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter your society name"
                 />
                 {errors.name && (
@@ -239,9 +236,8 @@ export default function NewSocietyForm() {
                   rows={4}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none ${
-                    errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 resize-none ${errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Describe your society's purpose, activities, and what makes it unique..."
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -269,11 +265,10 @@ export default function NewSocietyForm() {
                       key={category.value}
                       type="button"
                       onClick={() => handleInputChange('category', category.value)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
-                        formData.category === category.value
+                      className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${formData.category === category.value
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center space-x-3">
                         <span className="text-2xl">{category.icon}</span>
@@ -353,9 +348,8 @@ export default function NewSocietyForm() {
                     type="email"
                     value={formData.contactEmail}
                     onChange={(e) => handleInputChange('contactEmail', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.contactEmail ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.contactEmail ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="society@example.com"
                   />
                   {errors.contactEmail && (
@@ -376,9 +370,8 @@ export default function NewSocietyForm() {
                     type="url"
                     value={formData.website}
                     onChange={(e) => handleInputChange('website', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
-                      errors.website ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${errors.website ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="https://yoursociety.com"
                   />
                   {errors.website && (
@@ -403,11 +396,10 @@ export default function NewSocietyForm() {
                       key={tag}
                       type="button"
                       onClick={() => handleTagToggle(tag)}
-                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 ${
-                        formData.tags.includes(tag)
+                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 ${formData.tags.includes(tag)
                           ? 'bg-primary-100 text-primary-700 border border-primary-200'
                           : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       {tag}
                     </button>
@@ -433,25 +425,24 @@ export default function NewSocietyForm() {
                 </label>
                 <div className="space-y-3">
                   {[
-                    { value: 'public', title: 'Public', description: 'Anyone can find and join your society', icon: '🌍' },
-                    { value: 'private', title: 'Private', description: 'Only members can see society content', icon: '🔒' },
-                    { value: 'invite-only', title: 'Invite Only', description: 'Members can only join by invitation', icon: '✉️' }
-                  ].map(option => (
-                    <label key={option.value} className="flex items-start space-x-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    { value: 'public', title: 'Public', description: 'Anyone can find and join this society', icon: '🌍' },
+                    { value: 'private', title: 'Private', description: 'Only members can view this society', icon: '🔒' }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-400 hover:bg-blue-50/50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
                       <input
                         type="radio"
                         name="visibility"
                         value={option.value}
                         checked={formData.visibility === option.value}
                         onChange={(e) => handleInputChange('visibility', e.target.value)}
-                        className="mt-1"
+                        className="mt-1 mr-3"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{option.icon}</span>
-                          <span className="font-medium text-gray-900">{option.title}</span>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl">{option.icon}</span>
+                          <span className="font-semibold text-gray-900">{option.title}</span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{option.description}</p>
+                        <p className="text-sm text-gray-600">{option.description}</p>
                       </div>
                     </label>
                   ))}
@@ -523,11 +514,10 @@ export default function NewSocietyForm() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-xl transition-colors ${
-                  isSubmitting
+                className={`px-6 py-3 rounded-xl transition-colors ${isSubmitting
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-primary-600 hover:bg-primary-700 text-white'
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">

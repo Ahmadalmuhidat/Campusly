@@ -22,11 +22,11 @@ router.put('/users/profile', authMiddleware.checkUserLoggedIn, userController.up
 router.get('/users/profile/public', userController.getUserPublicProfile);
 router.get('/users/search', authMiddleware.checkUserLoggedIn, userController.searchUsers);
 // router.delete('/users/delete_user', auth_mdiddleware.checkUserLoggedIn, userController.deleteUser);
-router.get('/users/events', eventsController.getEventsAttendedByUser);
-router.get('/users/events/status', authMiddleware.checkUserLoggedIn, eventsController.getUserEventStatus);
+router.get('/users/events', userController.getEventsAttendedByUser);
+router.get('/users/events/status', authMiddleware.checkUserLoggedIn, userController.getUserEventStatus);
 router.get('/users/posts', userController.getPostsByUserPublic);
 router.get('/users/societies/public', userController.getSocietiesByUserPublic);
-router.get('/user/societies', authMiddleware.checkUserLoggedIn, societiesController.getSocietiesByUser);
+router.get('/user/societies', authMiddleware.checkUserLoggedIn, userController.getSocietiesByUser);
 
 // societies routes
 router.get('/societies/info', societiesController.getSocietyInformation);
@@ -50,8 +50,8 @@ router.post('/societies/members/invites/respond', authMiddleware.checkUserLogged
 router.post('/societies/members/invites/check-status', authMiddleware.checkUserLoggedIn, societiesController.checkInvitationStatus);
 router.get('/societies/members/invites', authMiddleware.checkUserLoggedIn, societiesController.getSentInvitations);
 router.delete('/societies/members/invites/cancel', authMiddleware.checkUserLoggedIn, societiesController.cancelInvitation);
-router.get('/societies/events', eventsController.getEventsBySociety);
-router.get('/societies/posts', postsController.getPostsBySociety);
+router.get('/societies/events', societiesController.getEventsBySociety);
+router.get('/societies/posts', societiesController.getPostsBySociety);
 
 // comment routes
 router.get('/comments', authMiddleware.checkUserLoggedIn, commentsController.getCommentsByPost);
@@ -73,7 +73,7 @@ router.post('/posts', authMiddleware.checkUserLoggedIn, postsController.createPo
 router.delete('/posts', authMiddleware.checkUserLoggedIn, postsController.deletePost);
 router.post('/posts/like', authMiddleware.checkUserLoggedIn, postsController.likePost);
 router.post('/posts/unlike', authMiddleware.checkUserLoggedIn, postsController.unlikePost);
-router.post('/posts/report', authMiddleware.checkUserLoggedIn, supportController.reportPost);
+router.post('/posts/report', authMiddleware.checkUserLoggedIn, postsController.reportPost);
 
 // Support routes
 router.post('/support', authMiddleware.checkUserLoggedIn, supportController.CreateTicket);

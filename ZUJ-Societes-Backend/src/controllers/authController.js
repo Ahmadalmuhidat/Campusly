@@ -1,6 +1,6 @@
 const User = require("../models/users");
 const passwords_helper = require("../helpers/passwords");
-const jsonWebToken = require("../helpers/jsonWebToken");
+const JsonWebToken = require("../helpers/jsonWebToken");
 const mailer = require("../services/mailer")
 
 exports.login = async (req, res) => {
@@ -13,7 +13,7 @@ exports.login = async (req, res) => {
     const isPasswordCorrect = await passwords_helper.verifyPassword(password, user.Password);
     if (!isPasswordCorrect) return res.status(401).json({ error_message: "Password is incorrect." });
 
-    const token = jsonWebToken.generateToken({
+    const token = JsonWebToken.generateToken({
       id: user.ID,
       name: user.Name,
       email: user.Email

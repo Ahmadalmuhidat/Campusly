@@ -115,7 +115,7 @@ export default function SocietySettings() {
             emailNotifications: true
           }
         };
-        
+
         setSettings(newSettings);
         setDataLoaded(true);
       }
@@ -164,7 +164,7 @@ export default function SocietySettings() {
     }));
   };
 
-  
+
   const saveSwitchSettings = async () => {
     try {
       const response = await AxiosClient.put('/societies', {
@@ -184,12 +184,12 @@ export default function SocietySettings() {
   };
 
   const { isSaving, lastSaved } = useAutoSave(
-    saveSwitchSettings, 
-    dataLoaded ? { 
-      privacy: settings.privacy, 
-      permissions: settings.permissions, 
-      notifications: settings.notifications 
-    } : null, 
+    saveSwitchSettings,
+    dataLoaded ? {
+      privacy: settings.privacy,
+      permissions: settings.permissions,
+      notifications: settings.notifications
+    } : null,
     1500
   );
 
@@ -199,12 +199,13 @@ export default function SocietySettings() {
         society_id: id
       });
 
-      if (response.status === 204) {
+      if (response.status === 200) {
         toast.success(`You left the society`);
         navigate("/societies");
       }
     } catch (error) {
       console.error('Error leaving society:', error);
+      toast.error('Failed to leave society');
     }
   };
 
@@ -320,14 +321,14 @@ export default function SocietySettings() {
                   Are you sure you want to delete this society? This action cannot be undone and will permanently remove all data, members, and events.
                 </p>
                 <div className="flex space-x-3">
-                  <button 
-                    onClick={() => setShowDeleteConfirm(false)} 
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
                     disabled={isDeleting}
                     className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleDeleteSociety}
                     disabled={isDeleting}
                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-semibold shadow-lg disabled:opacity-50"

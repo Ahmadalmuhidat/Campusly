@@ -22,8 +22,8 @@ export default function EventCard({ onEventDeleted, ...event }) {
   };
 
   const canDelete = isAuthenticated && (
-    event.User === user?.ID || 
-    isAdmin 
+    event.User === user?.ID ||
+    isAdmin
   );
 
   const handleDelete = async () => {
@@ -31,7 +31,7 @@ export default function EventCard({ onEventDeleted, ...event }) {
       setIsDeleting(true);
 
       const response = await AxiosClient.delete("/events", {
-        params: { 
+        params: {
           event_id: event.ID
         }
       });
@@ -51,7 +51,7 @@ export default function EventCard({ onEventDeleted, ...event }) {
   };
 
   const handleDeleteClick = (e) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setShowDeleteModal(true);
   };
 
@@ -75,7 +75,7 @@ export default function EventCard({ onEventDeleted, ...event }) {
         )}
 
         <div className="relative h-52 w-full overflow-hidden">
-          <img 
+          <img
             src={event.Image || defaultImage}
             alt={event.Title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -97,9 +97,9 @@ export default function EventCard({ onEventDeleted, ...event }) {
               <span className="text-xs font-bold">{formattedDate}</span>
             </div>
 
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors duration-300 mb-2">{event.Title}</h3>
-              <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">{event.Description}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors duration-300 mb-2 break-words">{event.Title}</h3>
+              <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed break-words overflow-hidden">{event.Description}</p>
             </div>
           </div>
 

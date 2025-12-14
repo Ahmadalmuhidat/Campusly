@@ -1,13 +1,14 @@
 const Post = require('../models/posts');
 const User = require("../models/users");
 const Society = require("../models/societies");
-const jsonWebToken = require("../helpers/jsonWebToken");
+const JsonWebToken = require("../helpers/jsonWebToken");
 const serverSentEvents = require('../helpers/serverSentEvents');
+const Report = require("../models/reports");
 
 exports.getAllPosts = async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const allSocieties = await Society.find({}).select("ID Name Members").lean();
     const userSocieties = allSocieties.filter(society => society.Members?.some(member => member.User === userId));
@@ -51,7 +52,7 @@ exports.createPost = async (req, res) => {
   try {
     const { society_id, content, image } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const society = await Society.findOne({ ID: society_id });
     if (!society) {
@@ -59,7 +60,7 @@ exports.createPost = async (req, res) => {
     }
 
     const whoCanPost = society.Permissions?.whoCanPost || 'all-members';
-    const membership = society.Members?.find(m => m.User === userId); // Added optional chaining here
+    const membership = society.Members?.find(member => member.User === userId);
     const userRole = membership?.Role;
 
     const isAllowedToPost =
@@ -93,7 +94,7 @@ exports.deletePost = async (req, res) => {
   try {
     const { post_id } = req.query;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     if (!userId) {
       return res.status(401).json({ error_message: "Invalid token payload." });
@@ -116,51 +117,11 @@ exports.deletePost = async (req, res) => {
   }
 };
 
-exports.getPostsBySociety = async (req, res) => {
-  try {
-    const { society_id } = req.query;
-    const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
-
-    if (!society_id) {
-      return res.status(400).json({ error_message: "Missing society_id." });
-    }
-
-    const posts = await Post.find({ Society: society_id }).sort({ CreatedAt: -1 });
-    const userIds = [...new Set(posts.map(p => p.User.toString()))];
-    const users = await User.find({ ID: { $in: userIds } }).select("ID Name Photo").lean();
-
-    const postsWithDetails = posts.map(post => {
-      const postUser = users.find(u => u.ID === post.User);
-      const likeCount = post.LikesCount || 0;
-      const isLiked = post.Likes?.some(like => like.User === userId) ? 1 : 0;
-
-      return {
-        ID: post.ID,
-        Content: post.Content,
-        Likes: likeCount,
-        Image: post.Image || "",
-        Comments: post.CommentsCount || 0,
-        CreatedAt: post.CreatedAt,
-        User: post.User,
-        User_Name: postUser?.Name || null,
-        User_Image: postUser?.Photo || null,
-        IsLiked: isLiked
-      };
-    });
-
-    res.status(200).json({ data: postsWithDetails });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error_message: "Failed to get Posts for this society." });
-  }
-};
-
 exports.unlikePost = async (req, res) => {
   try {
     const { post_id } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const post = await Post.findOne({ ID: post_id });
     if (!post) {
@@ -191,7 +152,7 @@ exports.likePost = async (req, res) => {
   try {
     const { post_id } = req.body;
     const token = req.headers['authorization']?.split(' ')[1];
-    const userId = jsonWebToken.verifyToken(token)['id'];
+    const userId = JsonWebToken.verifyToken(token)['id'];
 
     const post = await Post.findOne({ ID: post_id });
     if (!post) {
@@ -259,5 +220,47 @@ exports.getCommentsForPost = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error_message: "Failed to get comments." });
+  }
+};
+
+exports.reportPost = async (req, res) => {
+  try {
+    const {post_id, message} = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = JsonWebToken.verifyToken(token)['id'];
+
+    const newReport = new Report({
+      Type: "post",
+      ReferenceID: post_id,
+      User: userId,
+      Reason: message || ""
+    });
+
+    await newReport.save();
+    res.status(201).json({ data: newReport });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error_message: "Failed to report post." });
+  }
+};
+
+exports.reportEvent = async (req, res) => {
+  try {
+    const { event_id, reason } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const userId = JsonWebToken.verifyToken(token)['id'];
+
+    const newReport = new Report({
+      Type: "event",
+      ReferenceID: event_id,
+      User: userId,
+      Reason: reason || ""
+    });
+
+    await newReport.save();
+    res.status(201).json({ data: newReport });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error_message: "Failed to report event." });
   }
 };

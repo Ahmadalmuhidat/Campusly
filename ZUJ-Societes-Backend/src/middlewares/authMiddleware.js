@@ -1,9 +1,9 @@
-const jsonWebToken = require('../helpers/jsonWebToken');
+const JsonWebToken = require('../helpers/jsonWebToken');
 
 exports.checkUserLoggedIn = (req, res, next) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1]
-    const userData = jsonWebToken.verifyToken(token);
+    const userData = JsonWebToken.verifyToken(token);
 
     if (userData) {
       req.user = userData;

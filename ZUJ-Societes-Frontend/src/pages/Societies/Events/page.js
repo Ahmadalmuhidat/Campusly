@@ -7,13 +7,11 @@ import EventsList from './Components/EventsList';
 import EventStats from './Components/EventStats';
 import { getEventStatus } from '../../../utils/dateUtils';
 
-
 export default function SocietyEvents() {
   const { id } = useParams();
-  const [filter, setFilter] = useState('upcoming');
-  const [searchTerm, setSearchTerm] = useState('');
   const [events, setEvents] = useState([]);
-  const { isMember, isAdmin } = useSocietyMembership(id);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { isMember, canCreateEvents } = useSocietyMembership(id);
   const [mounted, setMounted] = useState(false);
 
   const getEventsBySociety = async () => {
@@ -31,34 +29,36 @@ export default function SocietyEvents() {
   };
 
   const isEventCompleted = (event) => {
-    return getEventStatus(event);
+    const eventDate = new Date(event.Date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
   };
 
   useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
     getEventsBySociety();
-    const idAnim = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(idAnim);
+    return () => cancelAnimationFrame(id);
   }, []);
 
   return (
     <>
-      <SocietyHeader
-        societyId={id || '1'}
-        actionButton={
-          isMember && isAdmin && (
-            <Link
-              to={`/societies/${id}/events/new`}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Create Event
-            </Link>
-          )
-        }
-      />
+      <SocietyHeader societyId={id} showJoinButton={!isMember} actionButton={
+        canCreateEvents() && (
+          <Link
+            to={`/societies/${id}/events/new`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-md flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Event
+          </Link>
+        )
+      } />
 
-      <main className={`min-h-screen py-8 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-        <div className="max-w-6xl mx-auto px-4">
-
+      <main className={`max-w-6xl mx-auto px-4 py-8 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+        <div className="space-y-6">
           {/* Event Stats */}
           <EventStats events={events} isEventCompleted={isEventCompleted} />
 
