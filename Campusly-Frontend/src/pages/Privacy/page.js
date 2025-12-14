@@ -26,7 +26,7 @@ export default function PrivacyPage() {
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  The University of Jordan ("ZUJ," "we," "us," or "our") is committed to protecting your privacy and personal information. 
+                  The University who utilize the platform is committed to protecting your privacy and personal information. 
                   This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the Campusly 
                   platform ("Platform" or "Service").
                 </p>
